@@ -253,8 +253,3 @@ class Secret(base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     encrypted_key = Column(String)
-
-if __name__ == "__main__":
-    voice_database_manager = VoiceDatabaseManager()
-    print(voice_database_manager.does_voice_exist("UnknownVoice0"))
-
