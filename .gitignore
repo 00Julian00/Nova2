@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+db/*
+!db/.gitkeep
+
+tools/*
+!tools/.gitkeep
+
+data/*
+!data/.gitkeep
+
+debug_runner.py
