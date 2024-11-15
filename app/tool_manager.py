@@ -108,6 +108,7 @@ class ToolManager:
         """
         Debug function that loads tools and prints their contents.
         """
+        
         tools = self.load_tools()
         
         print("\nLoaded Tools:")
