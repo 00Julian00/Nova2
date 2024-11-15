@@ -12,3 +12,5 @@ data/*
 !data/.gitkeep
 
 debug_runner.py
+
+api/nova_api.egg-info/*
