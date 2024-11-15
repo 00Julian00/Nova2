@@ -4,12 +4,12 @@ Description: This script manages the context.json file. It provides an interface
 
 import json
 from typing import List
-import os
 from datetime import datetime
+from pathlib import Path
 
 class ContextDataManager:
     def __init__(self) -> None:
-        self._context_file = os.path.join(os.path.join(os.path.dirname(__file__), '..', 'data'), 'context.json')
+        self._context_file = Path(__file__).parent.parent / "data" / "context.json"
         self._context_data = self._prepare_context_data()
     
     def add_spoken_sentence_to_context(self, sentence: str, voice_name: str) -> None:
@@ -43,7 +43,7 @@ class ContextDataManager:
         Creates a context.json file if it does not exist.
         Returns the content of the context.json file.
         """
-        if not os.path.exists(self._context_file):
+        if not self._context_file.exists():
             with open(self._context_file, 'w') as file:
                 json.dump([], file)
 

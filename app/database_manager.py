@@ -3,8 +3,8 @@ Description: Manages the databases and provides a simple interface
 """
 
 from typing import List, Tuple
-import os
 import uuid
+from pathlib import Path
 
 import torch
 from qdrant_client import QdrantClient
@@ -17,19 +17,19 @@ from sqlalchemy.orm import sessionmaker
 from .helpers import hash_embedding
 
 #Database setup
-db_people_folder = os.path.join(os.path.dirname(__file__), '..', 'db', 'db_people')
-os.makedirs(db_people_folder, exist_ok=True)
-db_people_location = os.path.join(db_people_folder, 'db_people.db')
+db_people_folder = Path(__file__).parent.parent / "db" / "db_people"
+db_people_folder.mkdir(parents=True, exist_ok=True)
+db_people_location = db_people_folder / "db_people.db"
 db_people_engine = create_engine(f"sqlite:///{db_people_location}", echo=False)
 
-db_memories_folder = os.path.join(os.path.dirname(__file__), '..', 'db', 'db_memories')
-os.makedirs(db_memories_folder, exist_ok=True)
-db_memories_location = os.path.join(db_memories_folder, 'db_memories.db')
+db_memories_folder = Path(__file__).parent.parent / "db" / "db_memories"
+db_memories_folder.mkdir(parents=True, exist_ok=True)
+db_memories_location = db_memories_folder / "db_memories.db"
 db_memories_engine = create_engine(f"sqlite:///{db_memories_location}", echo=False)
 
-db_secrets_folder = os.path.join(os.path.dirname(__file__), '..', 'db', 'db_secrets')
-os.makedirs(db_secrets_folder, exist_ok=True)
-db_secrets_location = os.path.join(db_secrets_folder, 'db_secrets.db')
+db_secrets_folder = Path(__file__).parent.parent / "db" / "db_secrets"
+db_secrets_folder.mkdir(parents=True, exist_ok=True)
+db_secrets_location = db_secrets_folder / "db_secrets.db"
 db_secrets_engine = create_engine(f"sqlite:///{db_secrets_location}", echo=False)
 
 base = declarative_base()
@@ -133,7 +133,7 @@ class VoiceDatabaseManager:
             )
 
     def _prepare_database(self) -> None:
-        db_location = os.path.join(os.path.join(os.path.dirname(__file__), '..', 'db'), 'db_embeddings')
+        db_location = Path(__file__).parent.parent / "db" / "db_embeddings"
 
         self._qdrant_client = QdrantClient(path=db_location)
 

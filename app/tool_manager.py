@@ -2,6 +2,9 @@
 Description: This script manages the LLM tools.
 """
 
+import json
+from pathlib import Path
+
 class LLMToolParameter:
     def __init__(
                 self,
@@ -69,4 +72,57 @@ class ToolManager:
         pass
     
     def load_tools(self) -> list[LLMTool]:
-        pass
+        """
+        Loads all tools from the tools folder.
+        """
+
+        tools = []
+        tools_dir = Path(__file__).parent.parent / "tools"
+        
+        for tool_dir in tools_dir.iterdir():
+            manifest_path = tool_dir / "manifest.json"
+            
+            if manifest_path.exists():
+                with open(manifest_path, "r") as f:
+                    try:
+                        manifest_list = json.load(f)
+
+                        for manifest in manifest_list:
+                            parameters = []
+                            if "parameters" in manifest:
+                                for param in manifest["parameters"]:
+                                    parameters.append(LLMToolParameter(**param))
+
+                            tool = LLMTool(
+                                        name=manifest["name"],
+                                        description=manifest["description"], 
+                                        parameters=parameters
+                            )
+                            tools.append(tool)
+                    except: #Likely wrong file format. Skip.
+                        continue
+        
+        return tools
+    
+    def debug_visualize_loaded_tools(self) -> None:
+        """
+        Debug function that loads tools and prints their contents.
+        """
+        tools = self.load_tools()
+        
+        print("\nLoaded Tools:")
+        print("-" * 50)
+        
+        for tool in tools:
+            print(f"\nTool: {tool.name}")
+            print(f"Description: {tool.description}")
+            
+            if tool.parameters:
+                print("\nParameters:")
+                for param in tool.parameters:
+                    print(f"  - {param.name}: {param.description}")
+                    print(f"    Type: {param.type}")
+            else:
+                print("\nNo parameters defined")
+            
+            print("-" * 50)
