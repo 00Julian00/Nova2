@@ -2,14 +2,10 @@
 Description: This script manages interactions with LLMs.
 """
 
-#How to handle tool calls:
-#Have an event system. You can subscribe to events.
-#A tool call is not only returned to the caller, but also triggers the event system.
-
 import groq
 
 from .security import KeyManager
-from .tool_manager import LLMTool, LLMToolCall
+from .tool_manager import LLMTool, LLMToolCall, ToolManager
 
 class LLMResponse:
     def __init__(
@@ -30,6 +26,7 @@ class LLMResponse:
 class LLMManager:
     def __init__(self) -> None:
         self._key_manager = KeyManager()
+        self._tool_manager = ToolManager()
 
         key = self._key_manager.get_secret("groq_api_key")
 
@@ -58,10 +55,13 @@ class LLMManager:
         if instruction != "" and instruction is not None:
             conversation.append({"role": "system", "content": instruction})
 
+        if tools:
+            tools_json = self._tool_manager.convert_tool_list_to_json(tools)
+
         response = self._groq_client.chat.completions.create(
             model=model,
             messages=conversation,
-            tools=tools
+            tools=tools_json
         )
         
         return self.construct_response(response)

@@ -14,3 +14,5 @@ data/*
 debug_runner.py
 
 api/nova_api.egg-info/*
+
+test.py

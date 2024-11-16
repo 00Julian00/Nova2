@@ -104,6 +104,15 @@ class ToolManager:
         
         return tools
     
+    #TODO: Implement this.
+    def convert_tool_list_to_json(self, tools: list[LLMTool]) -> list[dict]:
+        """
+        Converts a list of LLMTools to the proper json format for the LLM.
+        """
+
+        pass
+    
+    #*Debug function. Can be removed when tools are working.
     def debug_visualize_loaded_tools(self) -> None:
         """
         Debug function that loads tools and prints their contents.
