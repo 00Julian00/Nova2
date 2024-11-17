@@ -5,6 +5,9 @@ Description: This script manages the LLM tools.
 import json
 from pathlib import Path
 
+import nova_api
+from nova_api.tool_api import ExternalToolManager
+
 class LLMToolParameter:
     def __init__(
                 self,
@@ -73,36 +76,48 @@ class ToolManager:
     
     def load_tools(self) -> list[LLMTool]:
         """
-        Loads all tools from the tools folder.
+        Loads all tools from the tools folder. Also imports all .py files in the tools folder, so that inheritance is possible.
         """
 
+        self.tool_api_manager = ExternalToolManager()
+        self.tool_api_manager.initialize_tools()
+
+        #Loads all the tools metadata and creates LLMTool objects from them.
         tools = []
         tools_dir = Path(__file__).parent.parent / "tools"
         
         for tool_dir in tools_dir.iterdir():
-            manifest_path = tool_dir / "manifest.json"
+            metadata_path = tool_dir / "metadata.json"
             
-            if manifest_path.exists():
-                with open(manifest_path, "r") as f:
+            if metadata_path.exists():
+                with open(metadata_path, "r") as f:
                     try:
-                        manifest_list = json.load(f)
+                        metadata_list = json.load(f)
 
-                        for manifest in manifest_list:
+                        for metadata in metadata_list:
                             parameters = []
-                            if "parameters" in manifest:
-                                for param in manifest["parameters"]:
+                            if "parameters" in metadata:
+                                for param in metadata["parameters"]:
                                     parameters.append(LLMToolParameter(**param))
 
                             tool = LLMTool(
-                                        name=manifest["name"],
-                                        description=manifest["description"], 
+                                        name=metadata["name"],
+                                        description=metadata["description"], 
                                         parameters=parameters
                             )
                             tools.append(tool)
                     except: #Likely wrong file format. Skip.
+                        print(f"Error loading tool {tool_dir.name}. Skipping.")
                         continue
         
         return tools
+    
+    def initialize_tools(self) -> None:
+        """
+        Initializes all tools.
+        """
+
+        pass
     
     #TODO: Implement this.
     def convert_tool_list_to_json(self, tools: list[LLMTool]) -> list[dict]:
