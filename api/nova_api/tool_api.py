@@ -19,6 +19,9 @@ class Nova:
     def is_subscribed_to_event(self, event_name: str, callback: callable) -> bool:
         pass
 
+    def event_exists(self, event_name: str) -> bool:
+        pass
+
     #LLM interaction.
     def add_to_context(self, context: str, tool_name: str) -> None:
         pass
