@@ -112,13 +112,6 @@ class ToolManager:
         
         return tools
     
-    def initialize_tools(self) -> None:
-        """
-        Initializes all tools.
-        """
-
-        pass
-    
     #TODO: Implement this.
     def convert_tool_list_to_json(self, tools: list[LLMTool]) -> list[dict]:
         """

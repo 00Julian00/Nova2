@@ -4,6 +4,7 @@ Description: This script is the API for the tools that they can use to interact 
 
 from pathlib import Path
 import importlib.util
+from app import event_system
 
 class Nova:
     def __init__(self) -> None:
@@ -11,18 +12,19 @@ class Nova:
     
     #Event system.
     def subscribe_to_event(self, event_name: str, callback: callable) -> None:
-        pass
+        event_system.subscribe(event_name, callback)
 
     def unsubscribe_from_event(self, event_name: str, callback: callable) -> None:
-        pass
+        event_system.unsubscribe(event_name, callback)
 
-    def is_subscribed_to_event(self, event_name: str, callback: callable) -> bool:
-        pass
+    def is_subscribed(self, event_name: str, callback: callable) -> bool:
+        return event_system.is_subscribed(event_name, callback)
 
     def event_exists(self, event_name: str) -> bool:
-        pass
+        return event_system.event_exists(event_name)
 
     #LLM interaction.
+    #TODO: Hook up to the LLM manager.
     def add_to_context(self, context: str, tool_name: str) -> None:
         pass
 
@@ -39,7 +41,7 @@ class ToolBaseClass: #Used to run functions inside tools in the "tools" folder.
         return cls.__subclasses__()
     
     #Custom functions for tools.
-    def on_startup(cls) -> None:
+    def on_startup(self) -> None:
         """
         This function will be called once when the system starts.
         Subscribe to events and run other initialization logic here.
@@ -52,7 +54,7 @@ class ExternalToolManager:
     """
     
     def __init__(self) -> None:
-        pass
+        self._tools = []
 
     def initialize_tools(self) -> None:
         """
@@ -71,4 +73,6 @@ class ExternalToolManager:
 
         #Run the on_startup function for all tool classes.
         for tool_class in ToolBaseClass.get_subclasses():
-            tool_class.on_startup(self)
+            tool_instance = tool_class()
+            self._tools.append(tool_instance)
+            tool_instance.on_startup()

@@ -11,11 +11,13 @@ def event_exists_error_handling(func):
         return func(event_name, *args, **kwargs)
     return wrapper
 
-@event_exists_error_handling
 def define_event(event_name: str) -> None:
     """
     Defines an event.
     """
+
+    if event_name in _events:
+        raise Exception(f"Event {event_name} already exists.")
 
     _events[event_name] = []
 
