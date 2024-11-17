@@ -5,6 +5,7 @@ Description: This script is the API for the tools that they can use to interact 
 from pathlib import Path
 import importlib.util
 from app import event_system
+from app import context_data_manager
 
 class Nova:
     def __init__(self) -> None:
@@ -24,11 +25,10 @@ class Nova:
         return event_system.event_exists(event_name)
 
     #LLM interaction.
-    #TODO: Hook up to the LLM manager.
     def add_to_context(self, context: str, tool_name: str) -> None:
-        pass
+        context_data_manager.add_to_context(source={"tool": tool_name}, content=context)
 
-class ToolBaseClass: #Used to run functions inside tools in the "tools" folder.
+class ToolBaseClass: #Used to run methods inside tools in the "tools" folder via inheritance.
     def __init__(self) -> None:
         pass
 
@@ -40,10 +40,10 @@ class ToolBaseClass: #Used to run functions inside tools in the "tools" folder.
 
         return cls.__subclasses__()
     
-    #Custom functions for tools.
+    #Custom methods for tools.
     def on_startup(self) -> None:
         """
-        This function will be called once when the system starts.
+        This method will be called once when the system starts.
         Subscribe to events and run other initialization logic here.
         """
         pass
@@ -61,7 +61,7 @@ class ExternalToolManager:
         Initializes all tools.
         """
 
-        #Load all .py files in the tools folder into memory.
+        #Load all .py files in the tools folder into memory, else they can't be used via inheritance or event system.
         tools_dir = Path(__file__).parent.parent.parent / "tools"
         for tool_dir in tools_dir.iterdir():
             if tool_dir.is_dir():

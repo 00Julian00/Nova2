@@ -6,6 +6,7 @@ from time import sleep
 
 from .transcriptor import VoiceAnalysis
 from .context_manager import ContextManager
+from .tool_manager import ToolManager
 
 class AssistantPipeline:
     def __init__(self) -> None:
@@ -16,6 +17,9 @@ class AssistantPipeline:
 
         self._context_manager = ContextManager(voice_analysis=self._transcriptor.start())
         self._context_manager.start()
+
+        self._tool_manager = ToolManager()
+        self._tool_manager.load_tools()
 
         while True:
             sleep(1) #Keep the main thread alive.

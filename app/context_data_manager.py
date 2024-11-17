@@ -12,17 +12,14 @@ class ContextDataManager:
         self._context_file = Path(__file__).parent.parent / "data" / "context.json"
         self._context_data = self._prepare_context_data()
     
-    #TODO: Generalize to work with an ambigous source.
-    def add_spoken_sentence_to_context(self, sentence: str, voice_name: str) -> None:
+    def add_to_context(self, source: dict, content: str) -> None:
         """
-        Adds the spoken sentence to the context.json file.
+        Adds content to the context.json file.
         """
         self._context_data.append(
             {
-                "source": {
-                    "voice": voice_name
-                },
-                "content": sentence,
+                "source": source,
+                "content": content,
                 "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
             }
         )

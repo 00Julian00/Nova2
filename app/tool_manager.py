@@ -112,13 +112,42 @@ class ToolManager:
         
         return tools
     
-    #TODO: Implement this.
     def convert_tool_list_to_json(self, tools: list[LLMTool]) -> list[dict]:
         """
         Converts a list of LLMTools to the proper json format for the LLM.
         """
 
-        pass
+        tools_json = []
+        parameters = []
+        required_params = []
+
+        #Turn the parameters into json in the format expected by the LLM.
+        for tool in tools:
+            for param in tool.parameters:
+                parameters.append({
+                    "type": "object",
+                    "properties": {
+                        param.name: {
+                            "type": param.type,
+                            "description": param.description
+                        }
+                    }
+                })
+                if param.required:
+                    required_params.append(param.name)
+
+        tools_json.append({
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": parameters,
+                "required": required_params
+            }
+        })
+
+        return tools_json
+        
     
     #*Debug function. Can be removed when tools are working.
     def debug_visualize_loaded_tools(self) -> None:

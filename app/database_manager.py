@@ -222,6 +222,17 @@ class SecretsDatabaseManager:
             self._session.rollback()
             raise Exception("Error when writing to database.")
 
+    def delete_secret(self, name: str) -> None:
+        secret = self._session.query(Secret).filter_by(name=name).first()
+        
+        try:
+            if secret:
+                self._session.delete(secret)
+                self._session.commit()
+        except:
+            self._session.rollback()
+            raise Exception("Error when writing to database.")
+
     def _prepare_database(self) -> None:
         base.metadata.create_all(db_secrets_engine)
         self._session_factory = sessionmaker(bind=db_secrets_engine)

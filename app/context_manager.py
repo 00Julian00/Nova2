@@ -1,5 +1,5 @@
 """
-Description: This script collects all data provided to the system and stores them in long and short term context memory.
+Description: This script collects all data provided from the voice analysis and stores them in long and short term context memory.
 """
 
 import threading
@@ -48,7 +48,7 @@ class ContextManager:
                 else:
                     voice_name = self._voice_database_manager.create_unknown_voice(average_embedding)
 
-                self._context_data_manager.add_spoken_sentence_to_context(sentence_string, voice_name)
+                self._context_data_manager.add_to_context(source={"voice": voice_name}, content=sentence_string)
                 has_sentence_been_finished = True
 
     def start(self) -> None:

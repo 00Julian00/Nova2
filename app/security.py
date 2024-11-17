@@ -48,6 +48,5 @@ class KeyManager:
         encrypted_secret = self._encrypt_secret(key)
         self._secrets_db_manager.edit_secret(name, encrypted_secret)
 
-    #TODO: Implement this.
     def delete_secret(self, name: str) -> None:
-        pass
+        self._secrets_db_manager.delete_secret(name)
