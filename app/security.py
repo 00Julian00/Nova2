@@ -5,9 +5,11 @@ Description: This script holds various functions to handle security related task
 from cryptography.fernet import Fernet
 import keyring
 
+import huggingface_hub
+
 from .database_manager import SecretsDatabaseManager
 
-class KeyManager:
+class SecretsManager:
     def __init__(self):
         self._secrets_db_manager = SecretsDatabaseManager()
         if not self._get_encryption_key():
@@ -50,3 +52,14 @@ class KeyManager:
 
     def delete_secret(self, name: str) -> None:
         self._secrets_db_manager.delete_secret(name)
+
+    def huggingface_login(self) -> None:
+        token = self.get_secret(name="huggingface_token")
+        if not token:
+            token = input("Please enter your huggingface token: ")
+            self.add_secret(name="huggingface_token", key=token)
+
+        try:
+            huggingface_hub.login(token=token)
+        except:
+            raise Exception("You need access to the Llama-3.2 family of models on huggingface.")

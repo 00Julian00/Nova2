@@ -4,7 +4,9 @@ Description: This script manages interactions with LLMs.
 
 import groq
 
-from .security import KeyManager
+from transformers import AutoTokenizer
+
+from .security import SecretsManager
 from .tool_manager import LLMTool, LLMToolCall, ToolManager
 
 class LLMResponse:
@@ -25,7 +27,7 @@ class LLMResponse:
 
 class LLMManager:
     def __init__(self) -> None:
-        self._key_manager = KeyManager()
+        self._key_manager = SecretsManager()
         self._tool_manager = ToolManager()
 
         key = self._key_manager.get_secret("groq_api_key")
@@ -84,3 +86,8 @@ class LLMManager:
         response.used_tokens = llm_response.usage.total_tokens
 
         return response
+    
+    @staticmethod
+    def count_tokens(text: str, model: str) -> int:
+        tokenizer = AutoTokenizer.from_pretrained(model)
+        return len(tokenizer.tokenize(text))

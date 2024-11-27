@@ -2,6 +2,8 @@
 Description: This script collects all data provided from the voice analysis and stores them in long and short term context memory.
 """
 
+#TODO: Support multiple context files
+
 import threading
 
 from .transcriptor import VoiceAnalysis, VoiceProcessingHelpers
@@ -10,9 +12,9 @@ from .database_manager import VoiceDatabaseManager
 
 class ContextManager:
     def __init__(
-            self,
-            voice_analysis: VoiceAnalysis = None,
-            ) -> None:
+                self,
+                voice_analysis: VoiceAnalysis = None,
+                ) -> None:
 
         self._voice_analysis = voice_analysis
         self._context_data_manager = ContextDataManager()
@@ -31,7 +33,7 @@ class ContextManager:
                 last_sentence = sentence_string
                 continue
 
-            # Sentence is complete and can be processed.
+            #Sentence is complete and can be processed.
             if (("." in sentence_string or "!" in sentence_string or "?" in sentence_string) 
                 and not has_sentence_been_finished):
                 
@@ -57,6 +59,3 @@ class ContextManager:
     def close(self) -> None:
         if self._managing_pipeline.is_alive():
             self._managing_pipeline.join()
-
-    def __del__(self) -> None:
-        self.close()

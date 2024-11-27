@@ -1,32 +1,64 @@
 """
 Description: This script controls the execution flow of all the parts of the Nova system.
+Data storage is handled by "context data". With these, any data that is needed can be saved and loaded at any time in the pipeline.
 """
 
-from time import sleep
-
-from .transcriptor import VoiceAnalysis
-from .context_manager import ContextManager
-from .tool_manager import ToolManager
-
-class AssistantPipeline:
+class PipelineManager:
     def __init__(self) -> None:
         pass
+        
+    @staticmethod
+    def handle_block_execution_error(exception: Exception) -> None:
+        pass
 
-    def start(self) -> None:
-        self._transcriptor = VoiceAnalysis(microphone_index=3, speculative=False, whisper_model="deepdml/faster-whisper-large-v3-turbo-ct2", device="cuda", voice_boost=10.0, language="de", verbose=True)
+#Base processing block:
+class ProcessingBlock:
+    def __init__(
+                self,
+                name: str,
+                description: str,
+                base_logic: callable
+                ) -> None:
+        
+        """
+        Defines a processing block that can be added to the processing pipeline.
+        If is_start_block, the block will be treated as an entry point and can not receive input data.
+        base_logic is the callable that will be run when the block is activated.
+        """
 
-        self._context_manager = ContextManager(voice_analysis=self._transcriptor.start())
-        self._context_manager.start()
+        self.name = name
+        self.description = description
 
-        self._tool_manager = ToolManager()
-        self._tool_manager.load_tools()
+        self.base_logic = base_logic
 
-        while True:
-            sleep(1) #Keep the main thread alive.
+class ProcessingBlockWrapper:
+    def __init__(
+                self,
+                own_block,
+                next_block
+                ) -> None:
+        """
+        Used to control the execution flow.
+        """
 
-    def close(self) -> None:
-        self._transcriptor.close()
-        self._context_manager.close()
+        self.own_block = own_block
+        self.next_block = next_block
 
-    def __del__(self) -> None:
-        self.close()
+    def execute_block(self):
+        try:
+            self.own_block.base_logic()
+        except Exception as exception:
+            PipelineManager.handle_block_execution_error(exception=exception)
+
+        self.next_block.execute_block()
+
+#Specialized processing blocks:
+class ForkProcess:
+    def __init__(self) -> None:
+        """
+        Splits the execution flow of the pipeline using threading.
+        """
+        pass
+    
+    def execute_block(self):
+        pass

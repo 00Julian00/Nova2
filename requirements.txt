@@ -1,1 +1,16 @@
 -e api/
+torch
+qdrant_client
+sqlalchemy
+groq
+keyring
+langcodes
+librosa
+numpy
+sounddevice
+denoiser
+faster_whisper
+scipy
+speechbrain
+transformers
+huggingface_hub
