@@ -3,7 +3,6 @@ Description: This script manages interactions with LLMs.
 """
 
 import groq
-
 from transformers import AutoTokenizer
 
 from .security import SecretsManager

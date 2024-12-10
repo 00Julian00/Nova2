@@ -1,3 +1,4 @@
+#!This script is in the experiemntal stage is not used currently
 """
 Description: This script controls the execution flow of all the parts of the Nova system.
 Data storage is handled by "context data". With these, any data that is needed can be saved and loaded at any time in the pipeline.
@@ -34,8 +35,8 @@ class ProcessingBlock:
 class ProcessingBlockWrapper:
     def __init__(
                 self,
-                own_block,
-                next_block
+                own_block: ProcessingBlock,
+                next_block: ProcessingBlock
                 ) -> None:
         """
         Used to control the execution flow.
