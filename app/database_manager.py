@@ -6,30 +6,19 @@ from typing import List, Tuple
 import uuid
 from pathlib import Path
 import warnings
-from time import time_ns
 
 import torch
 from transformers import AutoModel
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, Distance, VectorParams, Filter, FieldCondition, Range, SearchParams
+from qdrant_client.models import PointStruct, Distance, VectorParams
 from qdrant_client.http import models
-from sqlalchemy import create_engine, Column, Integer, String, JSON
+from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from .helpers import hash_embedding
 
 #Database setup
-db_people_folder = Path(__file__).parent.parent / "db" / "db_people"
-db_people_folder.mkdir(parents=True, exist_ok=True)
-db_people_location = db_people_folder / "db_people.db"
-db_people_engine = create_engine(f"sqlite:///{db_people_location}", echo=False)
-
-db_memories_folder = Path(__file__).parent.parent / "db" / "db_memories"
-db_memories_folder.mkdir(parents=True, exist_ok=True)
-db_memories_location = db_memories_folder / "db_memories.db"
-db_memories_engine = create_engine(f"sqlite:///{db_memories_location}", echo=False)
-
 db_secrets_folder = Path(__file__).parent.parent / "db" / "db_secrets"
 db_secrets_folder.mkdir(parents=True, exist_ok=True)
 db_secrets_location = db_secrets_folder / "db_secrets.db"
@@ -67,7 +56,7 @@ class MemoryEmbeddingDatabaseManager:
             text: str,
             num_of_results: int = 1,
             search_area: int = 0,
-            cosine_threshold: float = 0.5
+            cosine_threshold: float = 0.6
             ) -> List[List[str]] | None:
         """
         Perform a semantic search in the database.
@@ -191,7 +180,7 @@ class VoiceDatabaseManager:
         Creates a new voice with the name "UnknownVoiceX", where X is a number starting from 0. These can later be replaced with the correct name, after the system has obtained the name.
         """
         unknown_counter = 0
-        while self.does_voice_exist(f"UnknownVoice{unknown_counter}"):
+        while self.does_voice_exist(f"UnknownVoice{unknown_counter}"): #Find an index that is not already used
             unknown_counter += 1
 
         self.create_voice(embedding, f"UnknownVoice{unknown_counter}")
@@ -250,20 +239,38 @@ class VoiceDatabaseManager:
         else:
             return None
 
-    #!Incomplete and unused.
-    def edit_voice_name(self, embedding: torch.FloatTensor, name: str) -> None:
+    def edit_voice_name(self, old_name: str, new_name: str) -> bool:
         """
-        INCOMPLETE. DO NOT USE.
-        Edits the name of a voice embedding in the Qdrant database.
+        Edits the name of a voice in the Qdrant database.
+        Returns True if the name was modified successfully and vice versa
         """
-        voice_id = self.get_voice_id(embedding)
-
-        if voice_id is not None:
-            self._qdrant_client.set_payload(
-                collection_name="voice_embeddings",
-                payload={"name": name},
-                points=[voice_id]
-            )
+        # Find the voice ID using the old name
+        search_result = self._qdrant_client.scroll(
+            collection_name="voice_embeddings",
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="name",
+                        match=models.MatchValue(value=old_name)
+                    )
+                ]
+            ),
+            limit=1 
+        )
+        
+        if not search_result[0]: #Return False if no voice was found.
+            return False
+            
+        voice_id = search_result[0][0].id
+        
+        # Update the name
+        self._qdrant_client.set_payload(
+            collection_name="voice_embeddings",
+            payload={"name": new_name},
+            points=[voice_id]
+        )
+        
+        return True
 
     def _prepare_database(self) -> None:
         db_location = Path(__file__).parent.parent / "db" / "db_embeddings"
@@ -276,52 +283,6 @@ class VoiceDatabaseManager:
     @staticmethod
     def _convert_to_qdrant_format(embedding: torch.FloatTensor) -> List[float]:
         return embedding.squeeze().cpu().numpy().tolist()
-
-class PeopleDatabaseManager:
-    def __init__(self) -> None:
-        self._prepare_database()
-
-    def add_person(self, name: str, hash: str, information: List[str]) -> str | None:
-        try:
-            new_person = Person(name=name, hash=hash, information=information)
-            self._session.add(new_person)
-            self._session.commit()
-        except:
-            self._session.rollback()
-            return "Error when writing to database."
-
-    def _prepare_database(self) -> None:
-        base.metadata.create_all(db_people_engine)
-        self._session_factory = sessionmaker(bind=db_people_engine)
-
-        self._session = self._session_factory()
-
-    """def __del__(self) -> None:
-        if self._session != None:
-            self._session.close()"""
-
-class MemoryDatabaseManager:
-    def __init__(self) -> None:
-        self._prepare_database()
-
-    def add_memory(self, tag: str, content: List) -> str | None:
-        try:
-            new_memory = Memory(tag=tag, content=content)
-            self._session.add(new_memory)
-            self._session.commit()
-        except:
-            self._session.rollback()
-            return "Error when writing to database."
-
-    def _prepare_database(self) -> None:
-        base.metadata.create_all(db_memories_engine)
-        self._session_factory = sessionmaker(bind=db_memories_engine)
-
-        self._session = self._session_factory()
-
-    """def __del__(self) -> None:
-        if self._session != None:
-            self._session.close()"""
 
 class SecretsDatabaseManager:
     def __init__(self):
@@ -375,21 +336,6 @@ class SecretsDatabaseManager:
     """def __del__(self) -> None:
         if self._session != None:
             self._session.close()"""
-
-class Person(base):
-    __tablename__ = "people"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    hash = Column(String)
-    information = Column(JSON)
-
-class Memory(base):
-    __tablename__ = "memories"
-
-    id = Column(Integer, primary_key=True)
-    tag = Column(String)
-    content = Column(JSON)
 
 class Secret(base):
     __tablename__ = "secrets"
