@@ -5,10 +5,13 @@ Description: Manages the databases and provides a simple interface
 from typing import List, Tuple
 import uuid
 from pathlib import Path
+import warnings
+from time import time_ns
 
 import torch
+from transformers import AutoModel
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, Distance, VectorParams
+from qdrant_client.models import PointStruct, Distance, VectorParams, Filter, FieldCondition, Range, SearchParams
 from qdrant_client.http import models
 from sqlalchemy import create_engine, Column, Integer, String, JSON
 from sqlalchemy.ext.declarative import declarative_base
@@ -33,6 +36,136 @@ db_secrets_location = db_secrets_folder / "db_secrets.db"
 db_secrets_engine = create_engine(f"sqlite:///{db_secrets_location}", echo=False)
 
 base = declarative_base()
+
+class MemoryEmbeddingDatabaseManager:
+    def __init__(self):
+        self._prepare_database()
+    
+    def create_new_entry(self, text: str) -> None:
+        embedding = self._compute_embedding(text)
+
+        #Prevent duplicate entries
+        if self._is_embedding_in_database(self._torch_tensor_to_float_list(embedding)):
+            warnings.warn("Similar or exact embedding already exists in memory embedding database.")
+            return
+
+        id = self._qdrant_client.get_collection("memory_embeddings").points_count
+
+        self._qdrant_client.upsert(
+            collection_name="memory_embeddings",
+            points=[
+                PointStruct(
+                    id=id,
+                    vector=embedding,
+                    payload={"text": text}
+                )
+            ]
+        )
+
+    def search_semantic(
+            self,
+            text: str,
+            num_of_results: int = 1,
+            search_area: int = 0,
+            cosine_threshold: float = 0.5
+            ) -> List[List[str]] | None:
+        """
+        Perform a semantic search in the database.
+
+        Arguments:
+            text (str): The text to do a semantic search on.
+            num_of_results (int): The amount of results that should be returned. Only returns the maximum amount of results that pass the cosine simmilarity threshold. Defaults to 1.
+            search_area (int): The amount of earlier and later entries around each result. If set to 0, only the result itself will be returned. Defaults to 0.
+
+        Returns:
+            List of string lists. Each string list is a result with the entries around the result in chronological order. Returns None if no results surpassed the cosine simmilarity threshold.
+        """
+
+        query_embedding = self._torch_tensor_to_float_list(self._compute_embedding(text=text))
+
+        search_results = self._qdrant_client.query_points(
+            collection_name="memory_embeddings",
+            query=query_embedding,
+            limit=num_of_results
+        )
+
+        #Filter out all results that do not surpass the threshold
+        results = [
+            result for result in search_results.points
+            if result.score >= cosine_threshold
+        ]
+
+        if len(results) == 0:
+            return None
+
+        #The search is finished. The return structure can be built and returned
+        if search_area <= 0:
+            return [[result.payload["text"]] for result in results]
+        
+        #Loop through all results and do area queries
+        return_list = []
+
+        for result in results:
+            return_list.append(self._query_area(result.id, search_area))
+
+        return return_list
+
+    def _query_area(self, center_id: int, size: int) -> List[str]:
+        max_id = self._qdrant_client.get_collection("memory_embeddings").points_count - 1
+
+        limit_down = size
+        limit_up = size
+
+        start_id = center_id - size
+
+        #Ensure the start is inside the bounds of the db
+        if (center_id - size < 0):
+            start_id = 0
+            limit_down = 0 #Ensure the area shrinks if the query starts at 0 instead of beeing offset upwards
+        elif (start_id + limit_up > max_id):
+            start_id = max_id
+            limit_up = 0 #Ensure the area shrinks if the query is partially greater then the collection size
+
+        search_results = self._qdrant_client.query_points(
+            collection_name="memory_embeddings",
+            limit=limit_down + limit_up + 1,
+            offset=start_id
+        )
+
+        return [result.payload["text"] for result in search_results.points]
+    
+    def _is_embedding_in_database(self, embedding: list[float], similarity_threshold: float = 0.8) -> bool:
+        results = self._qdrant_client.query_points(
+            collection_name="memory_embeddings",
+            query=embedding,
+            limit=1,
+            score_threshold=similarity_threshold
+        )
+
+        return len(results.points) > 0
+
+
+    def _compute_embedding(self, text: str) -> torch.FloatTensor:
+        """
+        Computes an embedding for a given text with shape (1024).
+        """
+        embedding = self._embedding_model.encode(text, task="text-matching")
+
+        return torch.from_numpy(embedding).squeeze()
+
+    def _prepare_database(self) -> None:
+        db_location = Path(__file__).parent.parent / "db" / "db_memory_embeddings"
+
+        self._qdrant_client = QdrantClient(path=db_location)
+
+        if not self._qdrant_client.collection_exists("memory_embeddings"):
+            self._qdrant_client.create_collection(collection_name="memory_embeddings", vectors_config=VectorParams(size=1024, distance=Distance.COSINE))
+
+        with warnings.catch_warnings(action="ignore"): #Blocks a deprecation warning
+            self._embedding_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True).to("cuda")
+
+    def _torch_tensor_to_float_list(self, embedding: torch.FloatTensor) -> List[float]:
+        return embedding.squeeze().cpu().numpy().tolist()
 
 class VoiceDatabaseManager:
     def __init__(self) -> None:
