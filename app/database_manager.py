@@ -6,6 +6,7 @@ from typing import List, Tuple
 import uuid
 from pathlib import Path
 import warnings
+import re
 
 import torch
 from transformers import AutoModel
@@ -26,11 +27,18 @@ db_secrets_engine = create_engine(f"sqlite:///{db_secrets_location}", echo=False
 
 base = declarative_base()
 
+#TODO: Add "open" and "close" functions to prevent concurrent access
 class MemoryEmbeddingDatabaseManager:
     def __init__(self):
         self._prepare_database()
     
     def create_new_entry(self, text: str) -> None:
+        split_text = re.split('[.!?]', text) #Split into sentences before storing
+        
+        for text in split_text:
+            self._save_embedding_to_db(text)
+
+    def _save_embedding_to_db(self, text: str) -> None:
         embedding = self._compute_embedding(text)
 
         #Prevent duplicate entries
@@ -180,7 +188,7 @@ class VoiceDatabaseManager:
         Creates a new voice with the name "UnknownVoiceX", where X is a number starting from 0. These can later be replaced with the correct name, after the system has obtained the name.
         """
         unknown_counter = 0
-        while self.does_voice_exist(f"UnknownVoice{unknown_counter}"): #Find an index that is not already used
+        while self.does_voice_exist(f"UnknownVoice{unknown_counter}"): #Find an index that is not already in use
             unknown_counter += 1
 
         self.create_voice(embedding, f"UnknownVoice{unknown_counter}")
@@ -273,7 +281,7 @@ class VoiceDatabaseManager:
         return True
 
     def _prepare_database(self) -> None:
-        db_location = Path(__file__).parent.parent / "db" / "db_embeddings"
+        db_location = Path(__file__).parent.parent / "db" / "db_voice_embeddings"
 
         self._qdrant_client = QdrantClient(path=db_location)
 
@@ -332,10 +340,6 @@ class SecretsDatabaseManager:
         self._session_factory = sessionmaker(bind=db_secrets_engine)
 
         self._session = self._session_factory()
-
-    """def __del__(self) -> None:
-        if self._session != None:
-            self._session.close()"""
 
 class Secret(base):
     __tablename__ = "secrets"
