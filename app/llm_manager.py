@@ -147,12 +147,15 @@ class LLMManager:
 
         if perform_rag:
             db = MemoryEmbeddingDatabaseManager()
+            db.open()
             retieved = db.search_semantic( #TODO: Split
                 text=conversation.get_newest("user").content,
                 num_of_results=2,
                 search_area=2
                 )
             
+            db.close()
+
             if retieved: #Don't add anything if there are no search results
                 conversation.add_message(
                     Message(author="system", content=f"Information that is potentially relevant to the conversation: {retieved}. This information was retrieved from the database.")
