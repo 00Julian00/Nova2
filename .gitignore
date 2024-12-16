@@ -15,4 +15,7 @@ debug_runner.py
 
 api/nova_api.egg-info/*
 
+app/world_model.py
+app/pipeline.py
+
 test.py

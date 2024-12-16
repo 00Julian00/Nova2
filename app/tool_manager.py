@@ -5,7 +5,6 @@ Description: This script manages the LLM tools.
 import json
 from pathlib import Path
 
-import nova_api
 from nova_api.tool_api import ExternalToolManager
 
 class LLMToolParameter:

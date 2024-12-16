@@ -38,7 +38,7 @@ def _is_connection_open(func):
     return wrapper
 
 
-#RAG hat Swag. LG Valentin Weyer.
+#RAG hat Swag. LG an Valentin Weyer.
 class MemoryEmbeddingDatabaseManager:
     def __init__(self):
         self._qdrant_client = None

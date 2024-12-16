@@ -27,6 +27,23 @@ class LLMResponse:
         self.tool_calls = tool_calls
         self.used_tokens = used_tokens
 
+    def response_to_LLMResponse_format(self, llm_response: dict) -> None:
+        """
+        Constructs the LLMResponse object including tool calls from the LLM response.
+        """
+
+        if "error" in llm_response:
+            raise RuntimeError(llm_response["error"]["message"])
+            
+        response = LLMResponse()
+        if llm_response.choices[0].message.content:
+            self.message = llm_response.choices[0].message.content
+
+        if llm_response.choices[0].message.tool_calls:
+            self.tool_calls = llm_response.choices[0].message.tool_calls
+
+        self.used_tokens = llm_response.usage.total_tokens
+
 class Message:
     def __init__(
             self,
@@ -178,26 +195,12 @@ class LLMManager:
                 messages=conversation
             )
         
-        return self.construct_response(response)
-        
-    def construct_response(self, llm_response: dict) -> LLMResponse:
-        """
-        Constructs the LLMResponse object including tool calls from the LLM response.
-        """
+        formated_response = LLMResponse()
+        formated_response.response_to_LLMResponse_format(response)
 
-        if "error" in llm_response:
-            raise RuntimeError(llm_response["error"]["message"])
-        
-        response = LLMResponse()
-        if llm_response.choices[0].message.content:
-            response.message = llm_response.choices[0].message.content
+        return formated_response
 
-        if llm_response.choices[0].message.tool_calls:
-            response.tool_calls = llm_response.choices[0].message.tool_calls
 
-        response.used_tokens = llm_response.usage.total_tokens
-
-        return response
     
     @staticmethod
     def count_tokens(text: str, model: str) -> int:
