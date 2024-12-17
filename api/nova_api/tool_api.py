@@ -58,7 +58,7 @@ class ExternalToolManager:
 
     def initialize_tools(self) -> None:
         """
-        Initializes all tools.
+        Initializes all tools by loading them into memory and calling their startup methods.
         """
 
         #Load all .py files in the tools folder into memory, else they can't be used via inheritance or event system.
@@ -71,7 +71,7 @@ class ExternalToolManager:
                         module = importlib.util.module_from_spec(spec)
                         spec.loader.exec_module(module)
 
-        #Run the on_startup function for all tool classes.
+        #Run the on_startup method for all tool classes.
         for tool_class in ToolBaseClass.get_subclasses():
             tool_instance = tool_class()
             self._tools.append(tool_instance)

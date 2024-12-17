@@ -6,68 +6,7 @@ import json
 from pathlib import Path
 
 from nova_api.tool_api import ExternalToolManager
-
-class LLMToolParameter:
-    def __init__(
-                self,
-                name: str,
-                description: str,
-                type: str,
-                required: bool
-                ) -> None:
-
-        """
-        Defines a parameter for a tool.
-        """
-
-        self.name = name
-        self.description = description
-        self.type = type
-        self.required = required
-
-class LLMTool:
-    def __init__(
-                self,
-                name: str,
-                description: str,
-                parameters: list[LLMToolParameter]
-                ) -> None:
-
-        """
-        Defines a tool that can be used by the LLM.
-        """
-
-        self.name = name
-        self.description = description
-        self.parameters = parameters
-
-class LLMToolCallParameter:
-    def __init__(
-                self,
-                name: str,
-                value: str #The value is always a string. Casting needs to be handled by the tool that is executed. Alternativly leave the type ambigous and look up the type in the tool's parameter definition.
-                ) -> None:
-
-        """
-        Defines a parameter for a tool call.
-        """
-
-        self.name = name
-        self.value = value
-
-class LLMToolCall:
-    def __init__(
-                self,
-                name: str,
-                parameters: list[LLMToolCallParameter]
-                ) -> None:
-
-        """
-        Defines a tool call made by the LLM.
-        """
-
-        self.name = name
-        self.parameters = parameters
+from .tool_data import LLMTool, LLMToolParameter
 
 class ToolManager:
     def __init__(self) -> None:
@@ -75,7 +14,7 @@ class ToolManager:
     
     def load_tools(self) -> list[LLMTool]:
         """
-        Loads all tools from the tools folder. Also imports all .py files in the tools folder, so that inheritance is possible.
+        Loads all tools from the tools folder. Also imports all .py files in the tools folder, so that inheritance is possible (importing happens in ExternalToolManager).
         """
 
         self.tool_api_manager = ExternalToolManager()
@@ -110,43 +49,6 @@ class ToolManager:
                         continue
         
         return tools
-    
-    def convert_tool_list_to_json(self, tools: list[LLMTool]) -> list[dict]:
-        """
-        Converts a list of LLMTools to the proper json format for the LLM.
-        """
-
-        tools_json = []
-        parameters = []
-        required_params = []
-
-        #Turn the parameters into json in the format expected by the LLM.
-        for tool in tools:
-            for param in tool.parameters:
-                parameters.append({
-                    "type": "object",
-                    "properties": {
-                        param.name: {
-                            "type": param.type,
-                            "description": param.description
-                        }
-                    }
-                })
-                if param.required:
-                    required_params.append(param.name)
-
-        tools_json.append({
-            "type": "function",
-            "function": {
-                "name": tool.name,
-                "description": tool.description,
-                "parameters": parameters,
-                "required": required_params
-            }
-        })
-
-        return tools_json
-        
     
     #*Debug function. Can be removed when tools are working.
     def debug_visualize_loaded_tools(self) -> None:
