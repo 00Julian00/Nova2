@@ -9,7 +9,6 @@ import time
 from typing import Literal, List, Generator
 
 import langcodes
-import librosa
 import numpy as np
 import sounddevice as sd
 import torch
@@ -17,7 +16,6 @@ import torch.nn.functional as F
 from denoiser import pretrained
 from denoiser.dsp import convert_audio
 from faster_whisper import WhisperModel
-from scipy.io import wavfile
 from speechbrain.inference.speaker import EncoderClassifier
 
 SAMPLE_RATE = 16000
@@ -30,28 +28,23 @@ class Word:
             end: float = 0,
             speaker_embedding: torch.FloatTensor = None
             ) -> None:
-        
         """
         A class to represent a word in a transcription.
 
         This class holds a singular word from a transcription, together with other relevant information.
 
-        Contents:
+        Arguments:
             text (str, optional): The text of the word. Defaults to "".
             start (float, optional): The start time of the word in seconds. Defaults to 0.
             end (float, optional): The end time of the word in seconds. Defaults to 0.
             speaker_embedding (torch.FloatTensor, optional): The speaker embedding of the voice that said the word. Defaults to None.
         """
-
         self.text = text
         self.start = start
         self.end = end
         self.speaker_embedding = speaker_embedding
 
 class VoiceAnalysis:
-    if os.name == "nt":
-        os.environ["KMP_DUPLICATE_LIB_OK"] = "True" # Only necessary for windows
-
     def __init__(
                 self,
                 microphone_index: int = 0,
@@ -68,13 +61,16 @@ class VoiceAnalysis:
 
         Arguments:
             microphone_index (int): The index of the microphone to use for recording.
-            speculative (bool, optional): Whether to provide unconfirmed results. Allows you to access more of the transcription earlier, but the data may be inaccurate and is subject to change in the next pass. Defaults to True.
-            whisper_model ("tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2", optional): The Whisper model to use. Defaults to "large-v3".
-            device ("cpu", "cuda", optional): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
-            voice_boost (float, optional): How much to boost the voice in the audio preprocessing stage. Setting it to 0 disables this feature. Defaults to 10.0.
-            language (str, optional): The language to use for the transcription. Must be a valid language code. If None, the language will be autodetected. If possible, the language should be set to improve accuracy. Defaults to None.
-            verbose (bool, optional): Whether to print debug information. Defaults to True.
+            speculative (bool): Whether to provide unconfirmed results. Allows you to access more of the transcription earlier, but the data may be inaccurate and is subject to change in the next pass. Defaults to True.
+            whisper_model (Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"]): The Whisper model to use. Defaults to "large-v3".
+            device (Literal["cpu", "cuda"]): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
+            voice_boost (float): How much to boost the voice in the audio preprocessing stage. Setting it to 0 disables this feature. Defaults to 10.0.
+            language (str): The language to use for the transcription. Must be a valid language code. If None, the language will be autodetected. If possible, the language should be set to improve accuracy. Defaults to None.
+            verbose (bool): Whether to print debug information. Defaults to True.
         """
+
+        if os.name == "nt":
+            os.environ["KMP_DUPLICATE_LIB_OK"] = "True" # Only necessary for windows
 
         self._verbose = verbose
 
@@ -242,8 +238,10 @@ class VoiceAnalysis:
         Returns a generator object that continuously yields the current sentence that is recorded from the microphone.
         if "speculative" is set to True, the generator may correct itself in the next pass, if not, it yields the words as they are coming in.
         When a sentence is finished, the generator yields the full sentence, until the user continues speaking, which will reset the sentence.
-        """
 
+        Returns:
+            Generator[List[Word], None, None]: The generator that yields the data.
+        """
         self._recording_thread.start()
 
         current_audio_data = None
@@ -310,21 +308,13 @@ class VoiceAnalysis:
             time.sleep(0.1)
         
     def close(self) -> None:
+        """
+        Ends the execution of this script. No more data will be yielded by the generator.
+        """
         self._is_recording = False
         self._audio_queue = queue.Queue()
         if self._recording_thread.is_alive():
             self._recording_thread.join()
-
-    def transcribe_from_file(self, file_path: str) -> List[Word]:
-        startTime = time.time()
-        audioData = self._load_from_wav(file_path).squeeze(0)
-        if self._detect_voice_activity(audioData):
-            transcription = self._transcribe(audioData)
-            self._log(f"File transcribed in {round((time.time() - startTime) * 100) / 100} seconds.")
-            return transcription
-        else:
-            self._log("No speech detected in the audio file.")
-            return []
 
     def _split_audio_by_timestamps(self, audio_data: torch.FloatTensor, start: float, end: float) -> torch.FloatTensor:
         start_sample = int(start * SAMPLE_RATE)
@@ -337,15 +327,24 @@ class VoiceAnalysis:
     def _log(self, text: str) -> None: # Used to print debug information if verbose is set to True. Reduces if statements in the code.
         if self._verbose:
             print(text)
-    
-    def __del__(self) -> None:
-        self.close()
 
 class VoiceProcessingHelpers:
+    def __init__(self):
+        """
+        A collection of static methods that act as helpers.
+        """
+        pass
+    
     @staticmethod
-    def word_array_to_string(word_array: List[Word]) -> str:
+    def word_array_to_string(word_array: list[Word]) -> str:
         """
         Extracts the text from an array of word objects and returns it as a string.
+
+        Arguments:
+            word_array (list[Word]): The array of word objects that will be converted to a string.
+
+        Returns:
+            str: The full extracted text.
         """
         text = ""
         for word in word_array:
@@ -355,33 +354,13 @@ class VoiceProcessingHelpers:
     @staticmethod
     def compare_embeddings(emb1: torch.FloatTensor, emb2: torch.FloatTensor) -> float:
         """
-        Returns a value between 0 and 1. Higher is more similar.
+        Compare how "close" two embeddings are to each other.
+
+        Arguments:
+            emb1 (torch.FloatTensor): The first embedding to compare.
+            emb2 (torch.FloatTensor): The second embedding to compare.
+
+        Returns:
+            float: How "close" the embeddings are. Ranges from -1 to 1. Higher is closer.
         """
-        return (F.cosine_similarity(emb1.squeeze(), emb2.squeeze(), dim=0).mean().item() + 1) / 2.0
-    
-    @staticmethod
-    def take_average_embedding(embeddings: List[torch.FloatTensor]) -> torch.FloatTensor:
-        """
-        Takes the average of a list of embeddings.
-        """
-        return torch.mean(torch.stack(embeddings), dim=0)
-
-    @staticmethod
-    def save_to_wav(file_path: str, audio_data: torch.FloatTensor, sample_rate: int) -> None:
-        audio_data = audio_data.cpu()
-        audio_numpy = audio_data.squeeze().numpy()
-        audio_int16 = (audio_numpy * np.iinfo(np.int16).max).astype(np.int16)
-        wavfile.write(file_path, sample_rate, audio_int16)
-
-    @staticmethod
-    def load_from_wav(file_path: str) -> torch.FloatTensor:
-        sample_rate, audio = wavfile.read(file_path)
-        audio = audio.astype(np.float32) / np.iinfo(audio.dtype).max
-
-        if sample_rate != SAMPLE_RATE:
-            audio_data = librosa.resample(audio, orig_sr=sample_rate, target_sr=SAMPLE_RATE)
-
-        audio_data = torch.FloatTensor(audio_data)
-        if audio_data.ndim == 1:
-            audio_data = audio_data.unsqueeze(0)
-        return audio_data
+        return (F.cosine_similarity(emb1.squeeze(), emb2.squeeze(), dim=0).mean().item())

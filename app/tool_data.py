@@ -10,7 +10,6 @@ class LLMToolParameter:
                 type: str,
                 required: bool
                 ) -> None:
-
         """
         Defines a parameter for a tool.
 
@@ -20,7 +19,6 @@ class LLMToolParameter:
             type (str): What datatype the parameter is, i.e. bool, int, string etc.
             required (bool): Wether the parameter has to be parsed.
         """
-
         self.name = name
         self.description = description
         self.type = type
@@ -33,7 +31,6 @@ class LLMTool:
                 description: str,
                 parameters: list[LLMToolParameter]
                 ) -> None:
-
         """
         Defines a tool that can be used by the LLM.
 
@@ -42,7 +39,6 @@ class LLMTool:
             description (str): A description in natural language. Helps the LLM to understand how to use the tool.
             parameters (list[LLMToolParameter]): A list of parameters the tool can take.
         """
-
         self.name = name
         self.description = description
         self.parameters = parameters
@@ -81,13 +77,11 @@ class LLMToolCallParameter:
     def __init__(
                 self,
                 name: str,
-                value: str #The value is always a string. Casting needs to be handled by the tool that is executed. Alternativly leave the type ambigous and look up the type in the tool's parameter definition.
+                value: str # The value is always a string. Casting needs to be handled by the tool that is executed. Alternativly leave the type ambigous and look up the type in the tool's parameter definition.
                 ) -> None:
-
         """
         Defines a parameter for a tool call.
         """
-
         self.name = name
         self.value = value
 
@@ -97,10 +91,8 @@ class LLMToolCall:
                 name: str,
                 parameters: list[LLMToolCallParameter]
                 ) -> None:
-
         """
         Defines a tool call made by the LLM.
         """
-
         self.name = name
         self.parameters = parameters

@@ -21,7 +21,6 @@ class AudioPlayer:
         """
         The audio player. Playback can be interrupted.
         """
-        
         self.playing = False
         self.current_playback = None
         self.stop_event = threading.Event()
@@ -33,7 +32,7 @@ class AudioPlayer:
     def _play(self, audio_stream: enumerate) -> None:
         self.playing = True
         
-        #Read stream data
+        # Read stream data
         buffer = io.BytesIO()
         for chunk in audio_stream:
             if self.stop_event.is_set():
@@ -63,6 +62,9 @@ class AudioPlayer:
         self.current_playback = None
 
     def stop(self):
+        """
+        Interrupt the current playback.
+        """
         if self.playing:
             self.stop_event.set()
             if self.current_playback:
@@ -72,6 +74,9 @@ class AudioPlayer:
 
 class TTSManager:
     def __init__(self):
+        """
+        This class manages the interaction with the elevenlabs API to generate speech from text.
+        """
         self._key_manager = SecretsManager()
         self._tool_manager = ToolManager()
 
@@ -100,6 +105,12 @@ class TTSManager:
                 time.sleep(0.1)
 
     def speak(self, text: str) -> None:
+        """
+        Convert text to speech and play the generated audio.
+
+        Arguments:
+            text (str): The text that will be converted to speech.
+        """
         audio_stream = self._elevenlabs_client.generate(
             text = text,
             voice=Voice(
@@ -114,6 +125,9 @@ class TTSManager:
 
 
     def interrupt(self) -> None:
+        """
+        Stop the current playback of the speech.
+        """
         self._audio_player.stop()
         self._audio_player = AudioPlayer()
         self._audio_queue.queue.clear()

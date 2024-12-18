@@ -2,6 +2,8 @@
 Description: This script controls the execution of Nova
 """
 
+#! This code is currently only for debbuging purposes.
+
 import torch
 
 class Nova:

@@ -13,11 +13,9 @@ class LLMResponse:
                 tool_calls: LLMToolCall | None = None,
                 used_tokens: int = 0
                 ) -> None:
-        
         """
         Stores necessary LLM response information.
         """
-
         self.message = message
         self.tool_calls = tool_calls
         self.used_tokens = used_tokens
@@ -25,8 +23,10 @@ class LLMResponse:
     def response_to_LLMResponse_format(self, llm_response: dict) -> None:
         """
         Constructs the LLMResponse object including tool calls from the LLM response.
-        """
 
+        Arguments:
+            llm_response (dict): The response from the LLM that will be converted.
+        """
         if "error" in llm_response:
             raise RuntimeError(llm_response["error"]["message"])
             
@@ -44,7 +44,9 @@ class Message:
             author: Literal["user", "assistant", "system"],
             content: str
             ) -> None:
-        
+        """
+        Stores one message in a conversation.
+        """
         self._allowed_roles = ["user", "assistant", "system"]
 
         if (author not in self._allowed_roles):
@@ -55,20 +57,37 @@ class Message:
 
 class Conversation:
     def __init__(self, conversation: list[Message] = []) -> None:
+        """
+        Stores the conversation between the LLM and the user.
+        """
         self._conversation = conversation
         self._allowed_roles = ["user", "assistant", "system"]
 
     def add_message(self, message: Message) -> None:
+        """
+        Add one message to the conversation.
+
+        Arguments:
+            message (Message): The message that will be added.
+        """
         self._conversation.append(message)
 
     def add_messages(self, messages: list[Message]) -> None:
+        """
+        Add multiple messages to the conversation.
+
+        Arguments:
+            messages (list[Message]): The messages that will be added.
+        """
         self._conversation += messages
 
-    def delete_last(self, author: Literal["user", "assistant", "system", None] = None):
+    def delete_last(self, author: Literal["user", "assistant", "system", None] = None) -> None:
         """
         Delete the last message in the conversation. If an author is parsed, the last message with that author is deleted.
-        """
 
+        Arguments:
+            author (Literal["user", "assistant", "system", None]): An optional parameter. The author whose newest message will be deleted.
+        """
         if author == None:
             del self._conversation[-1]
         else:
@@ -78,21 +97,27 @@ class Conversation:
                     del self._conversation[i]
                     break
 
-    def delete_all_from(self, author: Literal["user", "assistant", "system"]):
+    def delete_all_from(self, author: Literal["user", "assistant", "system"]) -> None:
         """
         Delete all messages from an author. Can be used to purge system prompts if behaviour should be overwritten.
-        """
 
+        Arguments:
+            author (Literal["user", "assistant", "system"]): The author from whom all messages should be deleted.
+        """
         for i, message in enumerate(reversed(self._conversation)):
             if message.author == author:
                 del self._conversation[i]
 
     def get_newest(self, author: Literal["user", "assistant", "system", None] = None) -> Message | None:
         """
-        Returns the newest message. If an author is parsed, the newest message of that author will be returned.
-        Returns none if the conversation is empty, or there are no messages from the specified author.
-        """
+        Get the newest message. If an author is parsed, the newest message of that author will be returned.
 
+        Arguments:
+            author (Literal["user", "assistant", "system", None]): An optional parameter. The author whose newest message will be returned.
+
+        Returns:
+            Message | None: The newest message (from the author). None if there are no messages in the conversation or no messages from the specified author.
+        """
         if len(self._conversation) == 0:
             return None
         
@@ -105,7 +130,10 @@ class Conversation:
 
     def conversation_to_llm_format(self) -> list[dict]:
         """
-        Convert the stored conversation to a format that can be parsed to the LLM
+        Convert the stored conversation to a format that can be parsed to the LLM.
+
+        Returns:
+            list[dict]: The formatted conversation.
         """
         conversation = []
 
@@ -117,6 +145,9 @@ class Conversation:
     def llm_format_to_conversation(self, conversation: list[dict]) -> None:
         """
         Convert the LLM format conversation into a conversation object. Overwrites the stored conversation.
+
+        Arguments:
+            converation (list[dict]): The conversation that should be converted and stored.
         """
         self._conversation = []
 

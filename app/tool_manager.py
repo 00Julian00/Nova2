@@ -8,19 +8,26 @@ from pathlib import Path
 from nova_api.tool_api import ExternalToolManager
 from .tool_data import LLMTool, LLMToolParameter
 
+#TODO: Implement tool execution.
+
 class ToolManager:
     def __init__(self) -> None:
+        """
+        This class manages the internal and external tools, as well as their execution.
+        """
         pass
     
     def load_tools(self) -> list[LLMTool]:
         """
         Loads all tools from the tools folder. Also imports all .py files in the tools folder, so that inheritance is possible (importing happens in ExternalToolManager).
-        """
 
+        Returns:
+            list[LLMTool]: A list of all loaded tools.
+        """
         self.tool_api_manager = ExternalToolManager()
         self.tool_api_manager.initialize_tools()
 
-        #Loads all the tools metadata and creates LLMTool objects from them.
+        # Loads all the tools metadata and creates LLMTool objects from them.
         tools = []
         tools_dir = Path(__file__).parent.parent / "tools"
         
@@ -44,18 +51,17 @@ class ToolManager:
                                         parameters=parameters
                             )
                             tools.append(tool)
-                    except: #Likely wrong file format. Skip.
+                    except: # Likely wrong file format. Skip.
                         print(f"Error loading tool {tool_dir.name}. Skipping.")
                         continue
         
         return tools
     
-    #*Debug function. Can be removed when tools are working.
+    #* Debug function. Can be removed when tools are working.
     def debug_visualize_loaded_tools(self) -> None:
         """
         Debug function that loads tools and prints their contents.
         """
-        
         tools = self.load_tools()
         
         print("\nLoaded Tools:")
