@@ -20,13 +20,12 @@ class LLMManager:
     #TODO: Add dynamic model selection to avoid rate limits.
     def prompt_llm(
                 self,
-                instruction: str | None,
                 conversation: Conversation,
                 tools: list[LLMTool] | None,
                 model: str,
-                perform_rag: bool = False
+                perform_rag: bool = False,
+                instruction: str | None = None
                 ) -> LLMResponse:
-
         """
         Run inference on an LLM.
 

@@ -6,7 +6,7 @@ import os
 import queue
 import threading
 import time
-from typing import Literal, List, Generator
+from typing import Literal, Generator
 
 import langcodes
 import numpy as np
@@ -17,6 +17,7 @@ from denoiser import pretrained
 from denoiser.dsp import convert_audio
 from faster_whisper import WhisperModel
 from speechbrain.inference.speaker import EncoderClassifier
+import silero_vad
 
 SAMPLE_RATE = 16000
 
@@ -80,7 +81,12 @@ class VoiceAnalysis:
         self._log(f"Using device '{self._device}'.")
         torch.set_default_dtype(torch.float32)
 
-        self._model = WhisperModel(whisper_model, device=self._device, compute_type="float32")
+        self._model = WhisperModel(
+            model_size_or_path=whisper_model,
+            device=self._device,
+            compute_type="float32",
+            cpu_threads=32
+            )
         self._log(f"Whisper model of size '{whisper_model}' loaded.")
         # Check if the language is valid
         if language is not None:
@@ -101,10 +107,7 @@ class VoiceAnalysis:
         else:
             self._log("voice_boost is set to 0, skipping denoiser model loading.")
         
-        self._vad_model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero_vad', trust_repo=True, verbose=False)
-        self._vad_model = self._vad_model.to(self._device)
-        (self._get_speech_ts, _, self._read_audio, self._VADIterator, self._collect_chunks) = utils
-        self._vad_iterator = self._VADIterator(self._vad_model)
+        self._vad_model = silero_vad.load_silero_vad()
         self._log("VAD model loaded.")
 
         self._speaker_embedding_model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb", run_opts={"device": self._device})
@@ -164,27 +167,17 @@ class VoiceAnalysis:
 
         return audio_tensor.numpy()
     
-    def _detect_voice_activity(self, audio_chunk: torch.FloatTensor) -> tuple[bool, list[float]]:
-        if type(audio_chunk) == np.ndarray:
-            audio_tensor = torch.from_numpy(audio_chunk).float().to(self._device)
-        else:
-            audio_tensor = audio_chunk.float().to(self._device)
-        
-        min_audio_length = int(16000 / 31.25)
-        if audio_tensor.shape[0] < min_audio_length:
-            padding = torch.zeros(min_audio_length - audio_tensor.shape[0], device=self._device)
-            audio_tensor = torch.cat([audio_tensor, padding])
-        
-        speech_probs = []
-        for i in range(0, len(audio_tensor), 512):
-            window = audio_tensor[i:i+512]
-            if len(window) == 512:
-                speech_prob = self._vad_model(window, 16000).item()
-                speech_probs.append(speech_prob)
+    #TODO: Allow to set the theshold at class instance declaration
+    def _detect_voice_activity(self, audio_chunk: torch.FloatTensor) -> bool:        
+        timestamps = silero_vad.get_speech_timestamps(
+            model=self._vad_model,
+            audio=audio_chunk,
+            threshold=0.7,
+            sampling_rate=SAMPLE_RATE
+        )
 
-        speech_detected = any(prob > 0.95 for prob in speech_probs)
-        return speech_detected, speech_probs
-    
+        return len(timestamps) > 0
+
     def _transcribe(self, audio_tensor: torch.FloatTensor) -> list[Word]:
         if self._language is not None:
             segments, info = self._model.transcribe(audio_tensor.cpu().numpy(), beam_size=5, language=self._language, condition_on_previous_text=False, word_timestamps=True)
@@ -231,7 +224,7 @@ class VoiceAnalysis:
             return torch.zeros(1, 512, device=self._device)  # Return a zero embedding as a fallback
 
     
-    def start(self) -> Generator[List[Word], None, None]:
+    def start(self) -> Generator[list[Word], None, None]:
         """
         Generator for live voice analysis.
 
@@ -240,7 +233,7 @@ class VoiceAnalysis:
         When a sentence is finished, the generator yields the full sentence, until the user continues speaking, which will reset the sentence.
 
         Returns:
-            Generator[List[Word], None, None]: The generator that yields the data.
+            Generator[list[Word], None, None]: The generator that yields the data.
         """
         self._recording_thread.start()
 
@@ -255,8 +248,7 @@ class VoiceAnalysis:
             if not self._audio_queue.empty():
                 audio_chunk = self._audio_queue.get()
                 audio_chunk = self._boost_speech(audio_chunk)
-                speech_detected, probabilities = self._detect_voice_activity(audio_chunk)
-
+                speech_detected = self._detect_voice_activity(audio_chunk)
                 if current_audio_data is None:
                     if not speech_detected:
                         first_audio_chunk = audio_chunk
@@ -290,6 +282,7 @@ class VoiceAnalysis:
                 for i, word in enumerate(self._current_sentence):
                     self._current_sentence[i].speaker_embedding = self._generate_speaker_embedding(audio_tensor, self._current_sentence[i].start, self._current_sentence[i].end)
                     if i < self._locked_words:
+                        print(word.text)
                         confirmed_transcription.append(word)
 
                     speculative_transcription.append(word)
@@ -299,13 +292,11 @@ class VoiceAnalysis:
                         current_audio_data = None
                         self._current_sentence = []
                         self._locked_words = 0
-            
+
             if self._speculative:
                 yield speculative_transcription
             else:
                 yield confirmed_transcription
-
-            time.sleep(0.1)
         
     def close(self) -> None:
         """
@@ -364,3 +355,35 @@ class VoiceProcessingHelpers:
             float: How "close" the embeddings are. Ranges from -1 to 1. Higher is closer.
         """
         return (F.cosine_similarity(emb1.squeeze(), emb2.squeeze(), dim=0).mean().item())
+    
+    @staticmethod
+    def take_average_embedding(embeddings: list[torch.FloatTensor]) -> torch.FloatTensor:
+        """
+        Takes the average of a list of embeddings.
+
+        Arguments:
+            embeddings (list[torch.FloatTensor]): The embedding list.
+
+        Returns:
+            torch.FloatTensor: The average embedding.
+        """
+        return torch.mean(torch.stack(embeddings), dim=0)
+
+if __name__ == "__main__":
+    transcriptor = VoiceAnalysis(
+        microphone_index=4,
+        speculative=False,
+        whisper_model="deepdml/faster-whisper-large-v3-turbo-ct2",
+        device="cuda",
+        voice_boost=0,
+        language="de",
+        verbose=True
+    )
+
+    print("Starting transcription.")
+
+    for _ in transcriptor.start():
+        text = VoiceProcessingHelpers.word_array_to_string(_)
+
+        if (text != ""):
+            print(text)

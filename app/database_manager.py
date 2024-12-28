@@ -231,8 +231,8 @@ class VoiceDatabaseManager:
         It also provides a method to compare two embeddings to determine wether two voices match.
         """
         self._prepare_database()
+        self._qdrant_client = None
     
-    #TODO: Replace the hash_embedding with a uuid.
     @_is_connection_open
     def create_voice(self, embedding: torch.FloatTensor, name: str) -> None:
         """
@@ -248,7 +248,7 @@ class VoiceDatabaseManager:
                 PointStruct(
                     id=str(uuid.uuid4()),
                     vector=self._torch_tensor_to_float_list(embedding),
-                    payload={"name": name, "hash": hash_embedding(embedding)}
+                    payload={"name": name}
                 )
             ]
         )

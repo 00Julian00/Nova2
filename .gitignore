@@ -18,4 +18,8 @@ api/nova_api.egg-info/*
 app/world_model.py
 app/pipeline.py
 
+pretrained_models/*
+
+notes.txt
+
 test.py

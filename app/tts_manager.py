@@ -13,7 +13,6 @@ from pydub import AudioSegment
 from pydub.playback import _play_with_simpleaudio
 
 from .security import SecretsManager
-from .tool_manager import ToolManager
 
 #TODO: Make it actually play the streaming audio instead of collecting it first
 class AudioPlayer:
@@ -78,7 +77,6 @@ class TTSManager:
         This class manages the interaction with the elevenlabs API to generate speech from text.
         """
         self._key_manager = SecretsManager()
-        self._tool_manager = ToolManager()
 
         key = self._key_manager.get_secret("elevenlabs_api_key")
 
@@ -104,6 +102,8 @@ class TTSManager:
             while self._audio_player.playing:
                 time.sleep(0.1)
 
+            time.sleep(0.1)
+
     def speak(self, text: str) -> None:
         """
         Convert text to speech and play the generated audio.
@@ -117,12 +117,11 @@ class TTSManager:
                 voice_id="1wp9zlfEyG5CpejHSr4V",
                 settings=VoiceSettings(stability=0.6, similarity_boost=1, style=0.2, use_speaker_boost=True)
             ),
-            model = "eleven_turbo_v2_5",
+            model = "eleven_flash_v2_5",
             stream = True
         )
 
         self._audio_queue.put(audio_stream)
-
 
     def interrupt(self) -> None:
         """
