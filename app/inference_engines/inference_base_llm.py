@@ -1,10 +1,10 @@
 """
-Description: Provides a base class for all inference engines to ensure a consistent structure and documentation.
+Description: Provides a base class for all LLM inference engines to ensure a consistent structure and documentation.
 """
 
 class InferenceEngineBase:
     """
-    Provides a base class for all inference engines to ensure a consistent structure.
+    Provides a base class for all LLM inference engines to ensure a consistent structure.
     """
 
     def select_model():

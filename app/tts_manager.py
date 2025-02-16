@@ -6,13 +6,15 @@ import threading
 import io
 import queue
 import time
+import wave
 
 from elevenlabs.client import ElevenLabs
 from elevenlabs import Voice, VoiceSettings
 from pydub import AudioSegment
 from pydub.playback import _play_with_simpleaudio
 
-from .security import SecretsManager
+from .inference_engines import inference_zonos, inference_elevenlabs
+from . import tts_data
 
 #TODO: Make it actually play the streaming audio instead of collecting it first
 class AudioPlayer:
@@ -23,42 +25,65 @@ class AudioPlayer:
         self.playing = False
         self.current_playback = None
         self.stop_event = threading.Event()
+
+        self._audio_chunks_queue = queue.Queue()
     
     def play_audio_stream(self, audio_stream: enumerate) -> None:
-        self._play_thread = threading.Thread(target=self._play, args=(audio_stream,))
-        self._play_thread.start()
+        self.producer_thread = threading.Thread(target=self._producer, args=(audio_stream,), daemon=True)
+        self.producer_thread.start()
+
+        self.consumer_thread = threading.Thread(target=self._consumer, daemon=True)
+        self.consumer_thread.start()
     
-    def _play(self, audio_stream: enumerate) -> None:
-        self.playing = True
-        
-        # Read stream data
-        buffer = io.BytesIO()
+    def _producer(self, audio_stream: list[bytes]) -> None:
         for chunk in audio_stream:
             if self.stop_event.is_set():
                 return
-            buffer.write(chunk)
-        
-        buffer.seek(0)
-        
-        # Convert MP3 to AudioSegment
-        audio_segment = AudioSegment.from_mp3(buffer)
-        
-        # Reset stop event
-        self.stop_event.clear()
-        
-        # Convert to wav
-        self.current_playback = _play_with_simpleaudio(audio_segment)
-        
-        # Wait for playback to finish or stop event
-        while self.current_playback.is_playing() and not self.stop_event.is_set():
-            threading.Event().wait(0.1)
-            
-        # Stop playback if still playing
-        if self.current_playback.is_playing():
-            self.current_playback.stop()
-            
-        self.playing = False
-        self.current_playback = None
+
+            if chunk.startswith(b'RIFF'): # Handle wave audio
+                with io.BytesIO(chunk) as bio:
+                    with wave.open(bio, 'rb') as wave_file:
+                        sample_width = wave_file.getsampwidth()
+                        channels = wave_file.getnchannels()
+                        framerate = wave_file.getframerate()
+                        
+                        audio_data = wave_file.readframes(wave_file.getnframes())
+                        
+                audio_segment = AudioSegment(
+                    data=audio_data,
+                    sample_width=sample_width,
+                    frame_rate=framerate,
+                    channels=channels
+                )
+            else: # Handle mp3 audio
+                audio_segment = AudioSegment.from_file(
+                    io.BytesIO(chunk),
+                    format='mp3'
+                )
+
+            self._audio_chunks_queue.put(audio_segment)
+
+    def _consumer(self) -> None:
+        """
+        Plays the audio data stored in the audio chunks queue
+        """
+        while True:
+            audio_segment = self._audio_chunks_queue.get()
+
+            self.playing = True
+
+            self.current_playback = _play_with_simpleaudio(audio_segment)
+                
+            # Wait for playback to finish or stop event
+            while self.current_playback.is_playing() and not self.stop_event.is_set():
+                threading.Event().wait(0.1)
+                    
+            # Stop playback if still playing
+            if self.current_playback.is_playing():
+                self.current_playback.stop()
+                    
+            self.playing = False
+            self.current_playback = None
 
     def stop(self):
         """
@@ -69,29 +94,34 @@ class AudioPlayer:
             if self.current_playback:
                 self.current_playback.stop()
 
+        self.producer_thread.join()
+
+        self._audio_chunks_queue = queue.Queue()
+
         self.playing = False
 
 class TTSManager:
     def __init__(self):
         """
-        This class manages the interaction with the elevenlabs API to generate speech from text.
+        This class runs TTS inference and play the resulting audio.
         """
-        self._key_manager = SecretsManager()
-
-        key = self._key_manager.get_secret("elevenlabs_api_key")
-
-        if not key:
-            raise ValueError("Elevenlabs API key not found")
-
-        self._elevenlabs_client = ElevenLabs(
-            api_key=key
-        )
 
         self._audio_player = AudioPlayer()
 
         self._audio_queue = queue.Queue()
 
-        threading.Thread(target=self._play_from_queue).start()
+        self._inference_engine = inference_zonos.InferenceEngine()
+
+        self._inference_engine.initialize_model()
+
+        self._conditioning = tts_data.TTSConditioning(
+            voice="Laura", #5Aahq892EEb6MdNwMM3p
+            language="de",
+            expressivness=100,
+            stability=2,
+        )
+
+        threading.Thread(target=self._play_from_queue, daemon=False).start()
 
     def _play_from_queue(self) -> None:
         while True:
@@ -111,16 +141,15 @@ class TTSManager:
         Arguments:
             text (str): The text that will be converted to speech.
         """
-        audio_stream = self._elevenlabs_client.generate(
-            text = text,
-            voice=Voice(
-                voice_id="1wp9zlfEyG5CpejHSr4V",
-                settings=VoiceSettings(stability=0.6, similarity_boost=1, style=0.2, use_speaker_boost=True)
-            ),
-            model = "eleven_flash_v2_5",
-            stream = True
-        )
 
+        stream = False # Streaming is too slow to be used
+
+        audio_stream = self._inference_engine.run_inference(
+                                                            conditioning=self._conditioning,
+                                                            text=text,
+                                                            stream=stream
+                                                            )
+        
         self._audio_queue.put(audio_stream)
 
     def interrupt(self) -> None:
@@ -128,5 +157,4 @@ class TTSManager:
         Stop the current playback of the speech.
         """
         self._audio_player.stop()
-        self._audio_player = AudioPlayer()
-        self._audio_queue.queue.clear()
+        self._audio_queue.queue = queue.Queue()

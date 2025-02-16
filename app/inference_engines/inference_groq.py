@@ -2,7 +2,7 @@ from typing import Literal
 
 import groq
 
-from .inference_engine_base import InferenceEngineBase
+from .inference_base_llm import InferenceEngineBase
 from .. import tool_data
 from .. import security
 from .. import llm_data

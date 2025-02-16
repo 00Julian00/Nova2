@@ -172,7 +172,7 @@ class VoiceAnalysis:
         timestamps = silero_vad.get_speech_timestamps(
             model=self._vad_model,
             audio=audio_chunk,
-            threshold=0.7,
+            threshold=0.95,
             sampling_rate=SAMPLE_RATE
         )
 

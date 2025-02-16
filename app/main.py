@@ -30,13 +30,13 @@ class Nova:
             raise Exception("CUDA is required to run Nova.")
         
         transcriptor = VoiceAnalysis(
-            microphone_index=11,
+            microphone_index=12,
             speculative=False,
             whisper_model="deepdml/faster-whisper-large-v3-turbo-ct2",
             device="cuda",
             voice_boost=10.0,
             language="de",
-            verbose=True
+            verbose=False
             )
 
         thread = threading.Thread(target=self.debug, args=(transcriptor,))

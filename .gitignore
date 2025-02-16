@@ -9,7 +9,8 @@ tools/*
 !tools/.gitkeep
 
 data/*
-!data/.gitkeep
+!data/voices/
+!data/voices/**
 
 debug_runner.py
 

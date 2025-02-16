@@ -14,3 +14,9 @@ scipy
 speechbrain
 transformers
 huggingface_hub
+mamba-ssm
+inflect
+kanjize
+phonemizer
+sudachipy
+sudachidict_full
