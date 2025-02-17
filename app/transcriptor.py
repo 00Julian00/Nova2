@@ -1,12 +1,12 @@
 """
 Description: This script uses fasterwhisper to continously transcribe audio data from the microphone. It also creates voice embeddings.
 """
-
 import os
 import queue
 import threading
 import time
-from typing import Literal, Generator
+from typing import Generator
+import multiprocessing
 
 import langcodes
 import numpy as np
@@ -19,87 +19,59 @@ from faster_whisper import WhisperModel
 from speechbrain.inference.speaker import EncoderClassifier
 import silero_vad
 
+from .transcriptor_data import Word, TranscriptorConditioning
+from .context_manager import Listener
+
 SAMPLE_RATE = 16000
 
-class Word:
-    def __init__(
-            self,
-            text: str = "",
-            start: float = 0,
-            end: float = 0,
-            speaker_embedding: torch.FloatTensor = None
-            ) -> None:
-        """
-        A class to represent a word in a transcription.
-
-        This class holds a singular word from a transcription, together with other relevant information.
-
-        Arguments:
-            text (str, optional): The text of the word. Defaults to "".
-            start (float, optional): The start time of the word in seconds. Defaults to 0.
-            end (float, optional): The end time of the word in seconds. Defaults to 0.
-            speaker_embedding (torch.FloatTensor, optional): The speaker embedding of the voice that said the word. Defaults to None.
-        """
-        self.text = text
-        self.start = start
-        self.end = end
-        self.speaker_embedding = speaker_embedding
-
 class VoiceAnalysis:
-    def __init__(
-                self,
-                microphone_index: int = 0,
-                speculative: bool = True,
-                whisper_model: Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"] = "large-v3",
-                device: Literal["cpu", "cuda"] = "cuda",
-                voice_boost: float = 10.0,
-                language: str = None,
-                verbose: bool = True
-                ) -> None:
-        
+    def __init__(self) -> None:
         """
         A pipeline for live voice analysis.
-
-        Arguments:
-            microphone_index (int): The index of the microphone to use for recording.
-            speculative (bool): Whether to provide unconfirmed results. Allows you to access more of the transcription earlier, but the data may be inaccurate and is subject to change in the next pass. Defaults to True.
-            whisper_model (Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"]): The Whisper model to use. Defaults to "large-v3".
-            device (Literal["cpu", "cuda"]): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
-            voice_boost (float): How much to boost the voice in the audio preprocessing stage. Setting it to 0 disables this feature. Defaults to 10.0.
-            language (str): The language to use for the transcription. Must be a valid language code. If None, the language will be autodetected. If possible, the language should be set to improve accuracy. Defaults to None.
-            verbose (bool): Whether to print debug information. Defaults to True.
         """
+        self._conditioning = None
+
+        self._conditioning_dirty = None
 
         if os.name == "nt":
             os.environ["KMP_DUPLICATE_LIB_OK"] = "True" # Only necessary for windows
 
-        self._verbose = verbose
+    def configure(self, conditioning: TranscriptorConditioning):
+        self._conditioning_dirty = conditioning
 
-        self._device = device
-        if device == "cuda" and not torch.cuda.is_available():
+    def apply_config(self) -> None:
+        if self._conditioning_dirty is None:
+            raise Exception("Failed to initialize TTS. No TTS conditioning provided.")
+
+        self._conditioning = self._conditioning_dirty
+
+        self._verbose = False
+
+        self._device = self._conditioning.device
+        if self._conditioning.device == "cuda" and not torch.cuda.is_available():
             self._device = "cpu"
         self._log(f"Using device '{self._device}'.")
         torch.set_default_dtype(torch.float32)
 
         self._model = WhisperModel(
-            model_size_or_path=whisper_model,
+            model_size_or_path=self._conditioning.model,
             device=self._device,
             compute_type="float32",
-            cpu_threads=32
+            cpu_threads=multiprocessing.cpu_count()
             )
-        self._log(f"Whisper model of size '{whisper_model}' loaded.")
+        self._log(f"Whisper model of size '{self._conditioning.model}' loaded.")
         # Check if the language is valid
-        if language is not None:
+        if self._conditioning.language is not None:
             try:
-                langcodes.Language.get(language)
+                langcodes.Language.get(self._conditioning.language)
             except:
-                raise ValueError(f"{language} is not a valid language code.")
-            self._log(f"Language set to '{language}'.")
+                raise ValueError(f"{self._conditioning.language} is not a valid language code.")
+            self._log(f"Language set to '{self._conditioning.language}'.")
         else:
             self._log("Language set to auto.")
-        self._language = language
+        self._language = self._conditioning.language
         
-        if voice_boost != 0.0:
+        if self._conditioning.voice_boost != 0.0:
             self._denoise_model = pretrained.dns64()
             self._denoise_model.eval()
             self._denoise_model = self._denoise_model.to(self._device)
@@ -113,14 +85,14 @@ class VoiceAnalysis:
         self._speaker_embedding_model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb", run_opts={"device": self._device})
         self._log("Speaker embedding model loaded.")
 
-        self._microphone_index = microphone_index
+        self._microphone_index = self._conditioning.microphone_index
         self._max_silence_chunks = 3
         self._current_sentence = []
         self._locked_words = 0
         self._audio_queue = queue.Queue()
         self._is_recording = True
-        self._voice_boost = voice_boost
-        self._speculative = speculative
+        self._voice_boost = self._conditioning.voice_boost
+        self._speculative = False
         self._recording_thread = threading.Thread(target=self._record_audio)
 
         self._log("Initialization complete.\n")

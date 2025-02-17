@@ -6,14 +6,16 @@ class InferenceEngineBase:
     """
     Provides a base class for all LLM inference engines to ensure a consistent structure.
     """
+    def __init__(self):
+        self._type = "LLM"
 
-    def select_model():
+    def initialize_model():
         """
         Load the model into VRAM/RAM. Required to run inference. Call free() to free up the VRAM/RAM again.
         """
         pass
 
-    def select_model_async():
+    def initialize_model_async():
         """
         Load the model into VRAM/RAM. Required to run inference. Call free() to free up the VRAM/RAM again. Runs async.
         """

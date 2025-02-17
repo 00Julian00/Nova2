@@ -1,10 +1,45 @@
 """
 Description: Holds all data required to run inference on LLMs.
 """
-
 from typing import Literal
 
 from .tool_data import LLMToolCall
+
+class LLMConditioning:
+    def __init__(
+                self,
+                model: str,
+                temperature: float = 0.8,
+                max_completion_tokens: int = 1024
+                ) -> None:
+        """
+        Stores all values required for LLM conditioning.
+        """
+        self.model = model
+        self.temperature = temperature
+        self.max_completion_tokens = max_completion_tokens
+
+class MemoryConfig:
+    def __init__(
+                self,
+                retrieve_memories: bool = True,
+                num_results: int = 2,
+                search_area: int = 2,
+                cosine_threshold: float = 0.6
+                ) -> None:
+        """
+        Stores the settings that determines how memories are retrieved.
+
+        Arguments:
+            retrieve_memories (bool): Wether to search for memories in the database.
+            num_results (int): The maximum amount of results that should be fed to the model.
+            search_area (int): How much context around the search result should additionally be fed to the model.
+            cosine_threshold (float): The similarity threshold a result must surpass to be utilized.
+        """
+        self.retrieve_memories = retrieve_memories
+        self.num_results = num_results
+        self.search_area = search_area
+        self.cosine_threshold = cosine_threshold
 
 class LLMResponse:
     def __init__(

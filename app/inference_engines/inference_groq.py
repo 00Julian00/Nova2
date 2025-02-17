@@ -1,22 +1,20 @@
-from typing import Literal
-
 import groq
 
 from .inference_base_llm import InferenceEngineBase
-from .. import tool_data
-from .. import security
-from .. import llm_data
+from ..tool_data import *
+from ..security import *
+from ..llm_data import *
 
 class InferenceEngine(InferenceEngineBase):
     def __init__(self):
         """
         This class provides the interface to run inference via the groq API.
         """
-        self._key_manager = security.SecretsManager()
+        self._key_manager = SecretsManager()
 
         self._model = None
 
-    def select_model(self, model: Literal["llama-3.3-70b-versatile", "llama-3.2-90b-vision-preview"]) -> None:
+    def initialize_model(self, conditioning: LLMConditioning) -> None:
         key = self._key_manager.get_secret("groq_api_key")
 
         if not key:
@@ -26,9 +24,9 @@ class InferenceEngine(InferenceEngineBase):
             api_key=key
         )
 
-        self._model = model
+        self._model = conditioning.model
 
-    def run_inference(self, conversation: llm_data.Conversation, tools: list[tool_data.LLMTool] | None):
+    def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None):
         conversation = conversation.conversation_to_llm_format()
         
         # Check if tools were parsed
@@ -51,7 +49,7 @@ class InferenceEngine(InferenceEngineBase):
                 tools=tool_list
             )
 
-        formated_response = llm_data.LLMResponse()
+        formated_response = LLMResponse()
         formated_response.response_to_LLMResponse_format(response)
 
         return formated_response

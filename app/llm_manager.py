@@ -1,29 +1,54 @@
 """
 Description: This script manages interactions with LLMs.
 """
-
 from transformers import AutoTokenizer
 
 from .tool_data import LLMTool
 from .database_manager import MemoryEmbeddingDatabaseManager
-from .inference_engines import inference_groq
-from .llm_data import LLMResponse, Message, Conversation
+from .inference_engines.inference_base_llm import InferenceEngineBase
+from .llm_data import *
 
 class LLMManager:
     def __init__(self) -> None:
         """
         This class provides the interface for LLM interaction.
         """
-        self._inference_engine = inference_groq.InferenceEngine()
+        self._inference_engine = None
+        self._conditioning = None
 
-    #TODO: Add support for vision models.
-    #TODO: Add dynamic model selection to avoid rate limits.
+        self._inference_engine_dirty = None
+        self._conditioning_dirty = None
+
+    def configure(self, inference_engine: InferenceEngineBase, conditioning: LLMConditioning) -> None:
+        """
+        Configure the LLM system.
+        """
+        if inference_engine._type != "LLM":
+            raise TypeError("Inference engine must be of type \"LLM\"")
+        
+        self._inference_engine_dirty = inference_engine
+        self._conditioning_dirty = conditioning
+
+    def apply_config(self) -> None:
+        """
+        Applies the configuration and loads the model into memory.
+        """
+        if self._inference_engine_dirty is None:
+            raise Exception("Failed to initialize LLM. No inference engine provided.")
+        
+        if self._conditioning_dirty is None:
+            raise Exception("Failed to initialize LLM. No LLM conditioning provided.")
+
+        self._inference_engine = self._inference_engine_dirty
+        self._conditioning = self._conditioning_dirty
+
+        self._inference_engine.initialize_model(self._conditioning)
+
     def prompt_llm(
                 self,
                 conversation: Conversation,
                 tools: list[LLMTool] | None,
-                model: str,
-                perform_rag: bool = False,
+                memory_config: MemoryConfig,
                 instruction: str | None = None
                 ) -> LLMResponse:
         """
@@ -42,14 +67,15 @@ class LLMManager:
         if instruction != "" and instruction is not None:
             conversation.add_message(Message(author="system", content=instruction))
 
-        if perform_rag:
+        if memory_config.retrieve_memories:
             db = MemoryEmbeddingDatabaseManager()
             db.open()
-            retieved = db.search_semantic( #TODO: Split
-                text=conversation.get_newest("user").content,
-                num_of_results=2,
-                search_area=2
-                )
+            retieved = db.search_semantic(
+                                        text=conversation.get_newest("user").content,
+                                        num_of_results=memory_config.num_results,
+                                        search_area=memory_config.search_area,
+                                        cosine_threshold=memory_config.cosine_threshold
+                                        )
             
             db.close()
 
@@ -58,12 +84,7 @@ class LLMManager:
                     Message(author="system", content=f"Information that is potentially relevant to the conversation: {retieved}. This information was retrieved from the database.")
                     )
 
-        if self._inference_engine.get_current_model() != model:
-            self._inference_engine.select_model(model=model)
-
-        response = self._inference_engine.run_inference(conversation=conversation, tools=tools)
-
-        return response
+        return self._inference_engine.run_inference(conversation=conversation, tools=tools)
     
     @staticmethod
     def count_tokens(text: str, model: str) -> int:

@@ -6,6 +6,8 @@ class InferenceEngineBase:
     """
     Provides a base class for all TTS inference engines to ensure a consistent structure.
     """
+    def __init__(self):
+        self._type = "TTS"
 
     def initialize_model():
         """
