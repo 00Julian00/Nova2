@@ -5,7 +5,7 @@ from ..tool_data import *
 from ..security import *
 from ..llm_data import *
 
-class InferenceEngine(InferenceEngineBase):
+class InferenceEngineGroq(InferenceEngineBase):
     def __init__(self):
         """
         This class provides the interface to run inference via the groq API.
@@ -13,6 +13,8 @@ class InferenceEngine(InferenceEngineBase):
         self._key_manager = SecretsManager()
 
         self._model = None
+
+        super().__init__()
 
     def initialize_model(self, conditioning: LLMConditioning) -> None:
         key = self._key_manager.get_secret("groq_api_key")

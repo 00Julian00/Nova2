@@ -12,7 +12,7 @@ from ..tts_data import TTSConditioning
 
 import sounddevice as sd
 
-class InferenceEngine(InferenceEngineBase):
+class InferenceEngineZonos(InferenceEngineBase):
     def __init__(self) -> None:
         """
         This class provides the interface to run inference via Zonos.
@@ -21,6 +21,8 @@ class InferenceEngine(InferenceEngineBase):
         self._model = None
         self._voice_files = Path(__file__).resolve().parent.parent.parent / "data" / "voices"
         self._device = "cuda"
+
+        super().__init__()
 
     def initialize_model(self, model: str = "Zyphra/Zonos-v0.1-transformer") -> None:
         self._model_name = model
@@ -107,7 +109,7 @@ class InferenceEngine(InferenceEngineBase):
 
         audio = self._model.generate(
             cond,
-            max_new_tokens=1000,
+            #max_new_tokens=1000,
             cfg_scale=conditioning.stability
         )
 

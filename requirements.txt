@@ -20,3 +20,6 @@ kanjize
 phonemizer
 sudachipy
 sudachidict_full
+safetensors
+psuitl
+nvidia-ml-py3

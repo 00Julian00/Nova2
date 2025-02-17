@@ -33,7 +33,7 @@ class TranscriptorConditioning:
     def __init__(
                 self,
                 microphone_index: int = 0,
-                model: Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"] = "large-v3",
+                model: Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"] = "deepdml/faster-whisper-large-v3-turbo-ct2",
                 device: Literal["cpu", "cuda"] = "cuda",
                 voice_boost: float = 10.0,
                 language: str = None

@@ -1,47 +1,61 @@
 """
 Description: Acts as the API for the entire Nova system.
 """
-import app.tts_manager as tts
-import app.llm_manager as llm
-import app.audio_manager as player
-import app.transcriptor as transcriptor
-import app.context_manager as context
+from app.tts_manager import *
+from app.llm_manager import *
+from app.audio_manager import *
+from app.transcriptor import *
+from app.context_manager import *
+from app.memory_manager import *
 
-class MemCheckResult:
-    pass
+from app.inference_engines import *
 
 class Nova:
     def __init__(self) -> None:
         """
         API to easily construct an AI assistant using the Nova framework.
         """
-        self._tts = tts.TTSManager()
-        self._llm = llm.LLMManager()
-        self._stt = transcriptor.VoiceAnalysis()
+        self._tts = TTSManager()
+        self._llm = LLMManager()
+        self._stt = VoiceAnalysis()
 
-        self._context = context.ContextManager()
-        self._player = player.AudioPlayer()
+        self._context = ContextManager()
+        self._player = AudioPlayer()
 
-    def configure_transcriptor(self, conditioning: transcriptor.TranscriptorConditioning) -> None:
+        self._mem_manager = MemoryManager()
+
+    def configure_transcriptor(self, conditioning: TranscriptorConditioning) -> None:
         """
         Configure the transcriptor.
         """
         self._stt.configure(conditioning=conditioning)
 
-    def configure_llm(self, inference_engine: llm.InferenceEngineBase, conditioning: llm.LLMConditioning) -> None:
+    def configure_llm(self, inference_engine: InferenceEngineBase, conditioning: LLMConditioning) -> None:
         """
         Configure the LLM system.
         """
         self._llm.configure(inference_engine=inference_engine, conditioning=conditioning)
 
-    def configure_tts(self, inference_engine: tts.InferenceEngineBase, conditioning: tts.TTSConditioning) -> None:
+    def configure_tts(self, inference_engine: InferenceEngineBase, conditioning: TTSConditioning) -> None:
         """
         Configure the Text-to-Speech system.
         """
         self._tts.configure(inference_engine=inference_engine, conditioning=conditioning)
 
     def mem_check(self) -> MemCheckResult:
-        raise NotImplementedError()
+        tts_model_mem = self._mem_manager.estimate_memory_requirement(self._tts._conditioning_dirty.model)
+        llm_model_mem = self._mem_manager.estimate_memory_requirement(self._llm._conditioning_dirty.model)
+        stt_model_mem = self._mem_manager.estimate_memory_requirement(self._stt._conditioning_dirty.model)
+
+        vram_required = tts_model_mem + llm_model_mem
+        ram_required = 0
+
+        if self._stt._conditioning_dirty.device == "cpu":
+            ram_required = stt_model_mem
+        else:
+            vram_required += stt_model_mem
+
+        return self._mem_manager.construct_mem_check_result(ram_required=ram_required, vram_required=vram_required)
 
     def apply_config(self) -> None:
         """
@@ -51,7 +65,7 @@ class Nova:
         self._llm.apply_config()
         self._stt.apply_config()
 
-    def run_llm(self, conversation: llm.Conversation, memory_config: llm.MemoryConfig = None, tools: list[llm.LLMTool] = None, instruction: str = "") -> llm.LLMResponse:
+    def run_llm(self, conversation: Conversation, memory_config: MemoryConfig = None, tools: list[LLMTool] = None, instruction: str = "") -> LLMResponse:
         """
         Run inference on the LLM.
 
@@ -66,7 +80,7 @@ class Nova:
         """
         return self._llm.prompt_llm(conversation=conversation, tools=tools, memory_config=memory_config, instruction=instruction)
 
-    def run_tts(self, text: str) -> tts.AudioData:
+    def run_tts(self, text: str) -> AudioData:
         """
         Run inference on the TTS.
 
@@ -78,11 +92,11 @@ class Nova:
         """
         return self._tts.run_inference(text=text)
 
-    def start_transcriptor(self) -> transcriptor.Listener:
-        return transcriptor.Listener(self._stt.start())
+    def start_transcriptor(self) -> Listener:
+        return Listener(self._stt.start())
 
-    def record_context(self, listener: transcriptor.Listener) -> None:
+    def record_context(self, listener: Listener) -> None:
         self._context.record_data(listener)
 
-    def play_audio(self, audio_data: player.AudioData) -> None:
+    def play_audio(self, audio_data: AudioData) -> None:
         self._player.play_audio(audio_data)

@@ -7,7 +7,7 @@ from .inference_base_tts import InferenceEngineBase
 from .. import security
 from ..tts_data import TTSConditioning
 
-class InferenceEngine(InferenceEngineBase):
+class InferenceEngineElevenlabs(InferenceEngineBase):
     def __init__(self) -> None:
         """
         This class provides the interface to run inference via the elevenlabs API.
@@ -15,6 +15,8 @@ class InferenceEngine(InferenceEngineBase):
         self._key_manager = security.SecretsManager()
 
         self._model = None
+
+        super().__init__()
 
     def initialize_model(self, model: Literal["eleven_multilingual_v2", "eleven_flash_v2_5", "eleven_turbo_v2_5"]) -> None:
         key = self._key_manager.get_secret("elevenlabs_api_key")

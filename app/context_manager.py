@@ -3,11 +3,13 @@ Description: This script collects all data provided from the voice analysis and 
 """
 import threading
 
-from .transcriptor import VoiceProcessingHelpers
+import torch
+
 from .context_data_manager import ContextDataManager
 from .context_data import Listener
 from .database_manager import VoiceDatabaseManager
 from .llm_data import Conversation, Message
+from .transcriptor_data import Word
 
 class ContextManager:
     def __init__(self) -> None:
@@ -31,7 +33,7 @@ class ContextManager:
         has_sentence_been_finished = False
 
         for sentence in listener.data():
-            sentence_string = VoiceProcessingHelpers.word_array_to_string(sentence)
+            sentence_string = self._word_array_to_string(sentence)
 
             if sentence_string != last_sentence:
                 has_sentence_been_finished = False
@@ -41,7 +43,7 @@ class ContextManager:
             # Sentence is complete and can be processed.
             if (("." in sentence_string or "!" in sentence_string or "?" in sentence_string) and not has_sentence_been_finished):
                 embedding_list = [word.speaker_embedding for word in sentence]
-                average_embedding = VoiceProcessingHelpers.take_average_embedding(embedding_list)
+                average_embedding = self._take_average_embedding(embedding_list)
                 
                 self._voice_database_manager.open()
 
@@ -59,6 +61,15 @@ class ContextManager:
 
                 self._context_data_manager.add_to_context(source={"voice": voice_name}, content=sentence_string)
                 has_sentence_been_finished = True
+
+    def _word_array_to_string(self, word_array: list[Word]) -> str:
+        text = ""
+        for word in word_array:
+            text += word.text
+        return text
+    
+    def _take_average_embedding(embeddings: list[torch.FloatTensor]) -> torch.FloatTensor:
+        return torch.mean(torch.stack(embeddings), dim=0)
 
     #* Placeholder code to connect all systems together for first integrated tests.
     def get_context(self) -> Conversation:

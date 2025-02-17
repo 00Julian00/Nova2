@@ -40,7 +40,7 @@ class TTSManager:
         self._inference_engine = self._inference_engine_dirty
         self._conditioning = self._conditioning_dirty
 
-        self._inference_engine.initialize_model()
+        self._inference_engine.initialize_model(self._conditioning.model)
 
     def run_inference(self, text: str) -> AudioData:
         """
@@ -58,4 +58,4 @@ class TTSManager:
                                                         stream=False
                                                         )
         
-        return AudioData(audio_data)
+        return AudioData(audio_data[0])

@@ -70,18 +70,32 @@ class LLMManager:
         if memory_config.retrieve_memories:
             db = MemoryEmbeddingDatabaseManager()
             db.open()
-            retieved = db.search_semantic(
-                                        text=conversation.get_newest("user").content,
-                                        num_of_results=memory_config.num_results,
-                                        search_area=memory_config.search_area,
-                                        cosine_threshold=memory_config.cosine_threshold
-                                        )
+
+            text = conversation.get_newest("user").content
+
+            text_split = text.split(". ")
+
+            results = ""
+
+            for sentence in text_split:
+                retrieved = db.search_semantic(
+                                            text=sentence,
+                                            num_of_results=memory_config.num_results,
+                                            search_area=memory_config.search_area,
+                                            cosine_threshold=memory_config.cosine_threshold
+                                            )
+                
+                for block in retrieved:
+                    for sent in block:
+                        results += sent
+
+                results += "|"
             
             db.close()
 
-            if retieved: # Don't add anything if there are no search results
+            if results != "": # Don't add anything if there are no search results
                 conversation.add_message(
-                    Message(author="system", content=f"Information that is potentially relevant to the conversation: {retieved}. This information was retrieved from the database.")
+                    Message(author="system", content=f"Information that is potentially relevant to the conversation: {results}. This information was retrieved from the database.")
                     )
 
         return self._inference_engine.run_inference(conversation=conversation, tools=tools)

@@ -8,6 +8,8 @@ import time
 from typing import Generator
 import multiprocessing
 
+from . import helpers
+
 import langcodes
 import numpy as np
 import sounddevice as sd
@@ -16,11 +18,11 @@ import torch.nn.functional as F
 from denoiser import pretrained
 from denoiser.dsp import convert_audio
 from faster_whisper import WhisperModel
-from speechbrain.inference.speaker import EncoderClassifier
+with helpers.suppress_output():
+    from speechbrain.inference.speaker import EncoderClassifier
 import silero_vad
 
 from .transcriptor_data import Word, TranscriptorConditioning
-from .context_manager import Listener
 
 SAMPLE_RATE = 16000
 
@@ -82,7 +84,8 @@ class VoiceAnalysis:
         self._vad_model = silero_vad.load_silero_vad()
         self._log("VAD model loaded.")
 
-        self._speaker_embedding_model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb", run_opts={"device": self._device})
+        with helpers.suppress_output():
+            self._speaker_embedding_model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb", run_opts={"device": self._device})
         self._log("Speaker embedding model loaded.")
 
         self._microphone_index = self._conditioning.microphone_index
