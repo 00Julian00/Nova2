@@ -5,6 +5,7 @@ Description: This script manages interactions with LLMs.
 from transformers import AutoTokenizer
 
 from .tool_data import LLMTool
+from .tool_manager import *
 from .database_manager import MemoryEmbeddingDatabaseManager
 from .inference_engines.inference_base_llm import InferenceEngineBase
 from .llm_data import *
@@ -19,7 +20,7 @@ class LLMManager:
 
         self._inference_engine_dirty = None
         self._conditioning_dirty = None
-
+        
     def configure(self, inference_engine: InferenceEngineBase, conditioning: LLMConditioning) -> None:
         """
         Configure the LLM system.

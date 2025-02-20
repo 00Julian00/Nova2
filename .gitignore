@@ -14,9 +14,6 @@ data/*
 
 debug_runner.py
 
-tool_api/tool_api.egg-info
-tool_api/tool_api.egg-info/*
-
 app/world_model.py
 app/pipeline.py
 

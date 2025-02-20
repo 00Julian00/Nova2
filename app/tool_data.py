@@ -31,7 +31,7 @@ class LLMTool:
                 self,
                 name: str,
                 description: str,
-                parameters: list[LLMToolParameter]
+                parameters: List[LLMToolParameter]
                 ) -> None:
         """
         Defines a tool that can be used by the LLM.
@@ -39,7 +39,7 @@ class LLMTool:
         Arguments:
             name (str): The name of the tool. Should be short and accurate.
             description (str): A description in natural language. Helps the LLM to understand how to use the tool.
-            parameters (list[LLMToolParameter]): A list of parameters the tool can take.
+            parameters (List[LLMToolParameter]): A list of parameters the tool can take.
         """
         self.name = name
         self.description = description
@@ -73,6 +73,7 @@ class LLMTool:
                 }
             }
         }
+
         return tool
 
 class LoadedTool:

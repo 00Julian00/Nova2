@@ -9,7 +9,7 @@ import warnings
 import importlib.util
 import ast
 
-from tool_api.api.tool_api import ToolBaseClass
+from tool_api import ToolBaseClass
 from .tool_data import LLMTool, LLMToolParameter, LLMToolCall, LoadedTool
 
 class ToolManager:
@@ -113,29 +113,7 @@ class ToolManager:
                         
                         break
 
+                warnings.warn(f"Attempted to call tool {tool_call.name}, but no tool with this name is loaded.")
+
             except Exception as e:
                 warnings.warn(f"Tool {tool_call.name} failed to execute with error: {e}")
-
-    #* Debug function. Can be removed when tools are working.
-    def debug_visualize_loaded_tools(self) -> None:
-        """
-        Debug function that loads tools and prints their contents.
-        """
-        tools = self.load_tools()
-        
-        print("\nLoaded Tools:")
-        print("-" * 50)
-        
-        for tool in tools:
-            print(f"\nTool: {tool.name}")
-            print(f"Description: {tool.description}")
-            
-            if tool.parameters:
-                print("\nParameters:")
-                for param in tool.parameters:
-                    print(f"  - {param.name}: {param.description}")
-                    print(f"    Type: {param.type}")
-            else:
-                print("\nNo parameters defined")
-            
-            print("-" * 50)

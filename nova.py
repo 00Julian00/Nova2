@@ -8,8 +8,8 @@ from app.audio_manager import *
 from app.transcriptor import *
 from app.context_manager import *
 from app.memory_manager import *
-
 from app.inference_engines import *
+from app.tool_manager import *
 
 class Nova:
     def __init__(self) -> None:
@@ -24,6 +24,8 @@ class Nova:
         self._player = AudioPlayer()
 
         self._mem_manager = MemoryManager()
+
+        self._tools = ToolManager()
 
     def configure_transcriptor(self, conditioning: TranscriptorConditioning) -> None:
         """
@@ -43,29 +45,6 @@ class Nova:
         """
         self._tts.configure(inference_engine=inference_engine, conditioning=conditioning)
 
-    def mem_check(self) -> MemCheckResult:
-        if self._tts._inference_engine_dirty.is_local:
-            tts_model_mem = self._mem_manager.estimate_memory_requirement(self._tts._conditioning_dirty.model)
-        else:
-            tts_model_mem = 0
-
-        if self._llm._inference_engine_dirty.is_local:
-            llm_model_mem = self._mem_manager.estimate_memory_requirement(self._llm._conditioning_dirty.model)
-        else:
-            llm_model_mem = 0
-        
-        stt_model_mem = self._mem_manager.estimate_memory_requirement(self._stt._conditioning_dirty.model)
-
-        vram_required = tts_model_mem + llm_model_mem
-        ram_required = 0
-
-        if self._stt._conditioning_dirty.device == "cpu":
-            ram_required = stt_model_mem
-        else:
-            vram_required += stt_model_mem
-
-        return self._mem_manager.construct_mem_check_result(ram_required=ram_required, vram_required=vram_required)
-
     def apply_config(self) -> None:
         """
         Updates the configuration of the transcriptor, LLM and TTS systems. Also loads the chosen models into memory.
@@ -74,7 +53,25 @@ class Nova:
         self._llm.apply_config()
         self._stt.apply_config()
 
-    def run_llm(self, conversation: Conversation, memory_config: MemoryConfig = None, tools: list[LLMTool] = None, instruction: str = "") -> LLMResponse:
+    def load_tools(self) -> List[LLMTool]:
+        """
+        Load all tools in the tool folder into memory and make them ready for calling.
+
+        Returns:
+            List[LLMTool]: A list of loaded tools that can be parsed when running the LLM to give it access to these tools.
+        """
+        return self._tools.load_tools()
+    
+    def execute_tool_calls(self, tool_calls: List[LLMToolCall]) -> None:
+        """
+        Execute the tools that were called by the LLM.
+
+        Arguments:
+            tool_calls (List[LLMToolCall]): The tool calls from the LLM that should be executed.
+        """
+        self._tools.execute_tool_call(tool_calls=tool_calls)
+
+    def run_llm(self, conversation: Conversation, memory_config: MemoryConfig = None, tools: List[LLMTool] = None, instruction: str = "") -> LLMResponse:
         """
         Run inference on the LLM.
 
@@ -102,9 +99,18 @@ class Nova:
         return self._tts.run_inference(text=text)
 
     def start_transcriptor(self) -> ContextSource:
+        """
+        Start the transcriptor. The transcriptor will start to listen to the microphone audio.
+
+        Returns:
+            ContextSource: The context source representing the transcriptor. Needs to be binded to record its data in "bind_context_source()".
+        """
         return ContextSource(self._stt.start())
 
     def bind_context_source(self, source: ContextSource) -> None:
+        """
+        Bind a context source. The data of a context source will only be recorded after beeing bound.
+        """
         self._context.record_data(source)
 
     def play_audio(self, audio_data: AudioData) -> None:

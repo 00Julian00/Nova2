@@ -1,4 +1,3 @@
-tool_api/
 torch
 qdrant_client
 sqlalchemy
@@ -21,8 +20,6 @@ phonemizer
 sudachipy
 sudachidict_full
 safetensors
-psuitl
-nvidia-ml-py3
 silero-vad
 elevenlabs
 cryptography
