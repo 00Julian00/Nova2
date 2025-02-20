@@ -4,7 +4,8 @@ from elevenlabs.client import ElevenLabs
 from elevenlabs import Voice, VoiceSettings
 
 from .inference_base_tts import InferenceEngineBaseTTS
-from ... import security
+from ... import security_manager
+from ...security_data import Secrets
 from ...tts_data import TTSConditioning
 
 class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
@@ -12,7 +13,7 @@ class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
         """
         This class provides the interface to run inference via the elevenlabs API.
         """
-        self._key_manager = security.SecretsManager()
+        self._key_manager = security_manager.SecretsManager()
 
         self._model = None
 
@@ -21,7 +22,7 @@ class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
         self.is_local = False
 
     def initialize_model(self, model: Literal["eleven_multilingual_v2", "eleven_flash_v2_5", "eleven_turbo_v2_5"]) -> None:
-        key = self._key_manager.get_secret("elevenlabs_api_key")
+        key = self._key_manager.get_secret(Secrets.ELEVENLABS_API)
 
         if not key:
             raise ValueError("Elevenlabs API key not found")

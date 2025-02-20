@@ -8,6 +8,7 @@ import keyring
 import huggingface_hub
 
 from .database_manager import SecretsDatabaseManager
+from .security_data import Secrets
 
 class SecretsManager:
     def __init__(self):
@@ -19,68 +20,85 @@ class SecretsManager:
         if not self._get_encryption_key():
             self._set_encryption_key(self._generate_encryption_key())
     
-    def add_secret(self, name: str, key: str) -> None:
+    def add_secret(self, name: Secrets, key: str) -> None:
         """
         Store a new secret. Secret is encrypted automatically.
 
         Arguments:
-            name (str): The name of the secret.
+            name (Secrets): The name of the secret.
             key (str): The secret itself.
         """
         encrypted_secret = self._encrypt_secret(key)
-        self._secrets_db_manager.add_secret(name, encrypted_secret)
+        self._secrets_db_manager.add_secret(name.value, encrypted_secret)
 
-    def get_secret(self, name: str) -> str | None:
+    def get_secret(self, name: Secrets) -> str | None:
         """
         Retrive a secret from the database. Will be decrypted automatically.
 
         Arguments:
-            name (str): The name of the secret that should be retrieved.
+            name (Secrets): The name of the secret that should be retrieved.
 
         Returns:
             str | None: The decrypted value of the secret or None if the secret could not be found.
         """
-        encrypted_secret = self._secrets_db_manager.get_secret(name)
+        encrypted_secret = self._secrets_db_manager.get_secret(name.value)
         if encrypted_secret:
             return self._decrypt_secret(encrypted_secret)
         
-    def edit_secret(self, name: str, key: str) -> None:
+    def edit_secret(self, name: Secrets, key: str) -> None:
         """
         Edit the value of an existing secret.
 
         Arguments:
-            name (str): The name of the secret that should be changed.
+            name (Secrets): The name of the secret that should be changed.
             key (str): The new value of the secret. Will be encrypted automatically.
         """
         encrypted_secret = self._encrypt_secret(key)
-        self._secrets_db_manager.edit_secret(name, encrypted_secret)
 
-    def delete_secret(self, name: str) -> None:
+        if not self.get_secret(name=name):
+            self._secrets_db_manager.add_secret(name.value, encrypted_secret)
+        else:
+            self._secrets_db_manager.edit_secret(name.value, encrypted_secret)
+
+    def delete_secret(self, name: Secrets) -> None:
         """
         Deletes a secret from the database.
 
         Arguments:
-            name (str): The secret that should be deleted.
+            name (Secrets): The secret that should be deleted.
         """
-        self._secrets_db_manager.delete_secret(name)
+        self._secrets_db_manager.delete_secret(name.value)
 
-    def huggingface_login(self, overwrite: bool = False, value: str = "") -> None:
+    def huggingface_login(self, overwrite: bool = False, token: str = "") -> None:
         """
         Attempt to log into huggingface which is required to access restricted repos.
-        If a token is already stored, it will be used to log in automatically, if not the user will be prompted in the console to enter their token.
-        """
-        token = self.get_secret(name="huggingface_token")
-        if not token or overwrite:
-            token = input("Please enter your huggingface token: ")
-            self.add_secret(name="huggingface_token", key=token)
+        Raises an exception if the login fails.
         
-        if value != "":
-            token = value
+        Arguments:
+            overwrite (bool): If true, "token" will overwrite the value stored in the database. If false, the database will remain unchanged and "token" will be used to attempt a login, if provided.
+            token (str): If provided, this token will be used to log in.
+        """
+        db_token = self.get_secret(name=Secrets.HUGGINGFACE)
 
-        try:
-            huggingface_hub.login(token=token)
-        except:
-            raise Exception("Failed to log into huggingface. Check wether your token is correct and valid and try again.")
+        # Overwrite the value in the db if overwrite.
+        if overwrite:
+            if db_token:
+                self.edit_secret(name=Secrets.HUGGINGFACE, key=token)
+            else:
+                self.add_secret(name=Secrets.HUGGINGFACE, key=token)
+
+        if token is not "":
+            try:
+                huggingface_hub.login(token=token)
+            except Exception as e:
+                raise Exception(f"Failed to log into huggingface: {e}")
+        elif db_token:
+            try:
+                huggingface_hub.login(token=db_token)
+            except Exception as e:
+                raise Exception(f"Failed to log into huggingface: {e}")
+        else:
+            raise Exception("Failed to log into huggingface. No overwrite value provided and no value found in database.")
         
     def _generate_encryption_key(self) -> bytes:
         return Fernet.generate_key()

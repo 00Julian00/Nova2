@@ -2,7 +2,8 @@ import groq
 
 from .inference_base_llm import InferenceEngineBaseLLM
 from ...tool_data import *
-from ...security import *
+from ...security_manager import *
+from ...security_data import Secrets
 from ...llm_data import *
 
 class InferenceEngineGroq(InferenceEngineBaseLLM):
@@ -19,7 +20,7 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
         self.is_local = False
 
     def initialize_model(self, conditioning: LLMConditioning) -> None:
-        key = self._key_manager.get_secret("groq_api_key")
+        key = self._key_manager.get_secret(Secrets.GROQ_API)
 
         if not key:
             raise ValueError("Groq API key not found")

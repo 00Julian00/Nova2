@@ -9,6 +9,7 @@ from app.transcriptor import *
 from app.context_manager import *
 from app.inference_engines import *
 from app.tool_manager import *
+from app.security_manager import *
 
 class Nova:
     def __init__(self) -> None:
@@ -21,8 +22,8 @@ class Nova:
 
         self._context = ContextManager()
         self._player = AudioPlayer()
-
         self._tools = ToolManager()
+        self._security = SecretsManager()
 
     def configure_transcriptor(self, conditioning: TranscriptorConditioning) -> None:
         """
@@ -122,3 +123,24 @@ class Nova:
         """
         while self._player.is_playing():
             time.sleep(0.1)
+
+    def huggingface_login(self, overwrite: bool = False, token: str = ""):
+        """
+        Attempt to log into huggingface which is required to access restricted repos.
+        Raises an exception if the login fails.
+        
+        Arguments:
+            overwrite (bool): If true, "token" will overwrite the value stored in the database. If false, the database will remain unchanged and "token" will be used to attempt a login, if provided.
+            token (str): If provided, this token will be used to log in.
+        """
+        self._security.huggingface_login(overwrite=overwrite, token=token)
+
+    def edit_secret(self, name: Secrets, value: str) -> None:
+        """
+        Edit a secret, like an API key in the database. If the secret does not exist, it will be created. The value will be encrypted before it is stored.
+
+        Arguments:
+            name (Secrets): Which of the secrets to edit.
+            value (str): The new value of the secret.
+        """
+        self._security.edit_secret(name=name, key=value)
