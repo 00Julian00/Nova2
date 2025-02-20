@@ -1,11 +1,13 @@
 """
 Holds various functionality for memory management.
 """
+
 import os
 import math
 from pathlib import Path
 
 from transformers import AutoModel
+from huggingface_hub import HfApi, get_hf_file_metadata, hf_hub_url
 import psutil
 import nvidia_smi
 
@@ -25,17 +27,33 @@ class MemCheckResult:
 class MemoryManager:
     def __init__(self) -> None:
         pass
-
+    
+    @DeprecationWarning("This function should not be called. It is broken.")
     def estimate_memory_requirement(self, model: str, precision: str = "fp16") -> float:
         """
         Calculates a rough estimate of how much memory a model will require. Result is in MB.
         """
-        paths = self._get_safetensors_path(model=model)
+        api = HfApi()
+
+        safetensor_files = []
+
+        try:
+            files = api.list_repo_files(repo_id=model)
+
+            for file in files:
+                if file.endswith(".safetensors"):
+                    safetensor_files.append(file)
+        except Exception as e:
+            print(f"Error: {e}")
 
         base_size = 0
-
-        for file in paths:
-            base_size += os.path.getsize(file)
+        for file in safetensor_files:
+            url = f"https://huggingface.co/{model}/blob/main/{file}"
+            try:
+                metadata = get_hf_file_metadata(url=url)
+                base_size += metadata.size
+            except Exception as e:
+                print(f"Error getting metadata for {file}: {e}")
 
         precision_multiplier = 2 if precision == "fp16" else 4
         base_memory = base_size * (precision_multiplier / 4)

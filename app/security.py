@@ -64,15 +64,18 @@ class SecretsManager:
         """
         self._secrets_db_manager.delete_secret(name)
 
-    def huggingface_login(self) -> None:
+    def huggingface_login(self, overwrite: bool = False, value: str = "") -> None:
         """
         Attempt to log into huggingface which is required to access restricted repos.
         If a token is already stored, it will be used to log in automatically, if not the user will be prompted in the console to enter their token.
         """
         token = self.get_secret(name="huggingface_token")
-        if not token:
+        if not token or overwrite:
             token = input("Please enter your huggingface token: ")
             self.add_secret(name="huggingface_token", key=token)
+        
+        if value != "":
+            token = value
 
         try:
             huggingface_hub.login(token=token)

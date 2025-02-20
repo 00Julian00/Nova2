@@ -1,4 +1,3 @@
-#? Is this system even needed?
 """
 Description: This script is responsible for interaction with json files designated as libraries which store large amounts of static data.
 """

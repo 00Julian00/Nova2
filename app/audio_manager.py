@@ -1,6 +1,7 @@
 """
 Description: This script is responsible for audio playback.
 """
+
 import threading
 import io
 
@@ -9,7 +10,25 @@ from pydub.playback import _play_with_simpleaudio
 import wave
 
 class AudioData:
-    def __init__(self, data: bytes) -> None:
+    def __init__(self) -> None:
+        self._audio_data = None
+
+    def _store_chunk(self, data: bytes) -> None:
+        self._audio_data = self._process_chunk(data)
+
+    def _store_chunks(self, data: list[bytes]) -> None:
+        audio_data = None
+        silence = AudioSegment.silent(duration=500)
+        
+        for chunk in data:
+            if audio_data is None:
+                audio_data = self._process_chunk(chunk)
+            else:
+                audio_data += silence + self._process_chunk(chunk)
+
+        self._audio_data = audio_data
+
+    def _process_chunk(self, data: bytes) -> AudioSegment:
         if data.startswith(b'RIFF'): # Handle wave audio
             with io.BytesIO(data) as bio:
                 with wave.open(bio, 'rb') as wave_file:
@@ -19,14 +38,14 @@ class AudioData:
                         
                     audio_data = wave_file.readframes(wave_file.getnframes())
                         
-            self._audio_data = AudioSegment(
+            return AudioSegment(
                 data=audio_data,
                 sample_width=sample_width,
                 frame_rate=framerate,
                 channels=channels
             )
         else: # Handle mp3 audio
-            self._audio_data = AudioSegment.from_file(
+            return AudioSegment.from_file(
                 io.BytesIO(data),
                 format='mp3'
             )

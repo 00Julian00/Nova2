@@ -24,6 +24,8 @@ class InferenceEngineZonos(InferenceEngineBase):
 
         super().__init__()
 
+        self.is_local = True
+
     def initialize_model(self, model: str = "Zyphra/Zonos-v0.1-transformer") -> None:
         self._model_name = model
 
@@ -88,7 +90,6 @@ class InferenceEngineZonos(InferenceEngineBase):
     def free(self) -> None:
         self._model = None
 
-    # TODO: Split by sentence.
     def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> bytes:
         if not conditioning.emotion:
             # Defaults to happy
@@ -109,7 +110,7 @@ class InferenceEngineZonos(InferenceEngineBase):
 
         audio = self._model.generate(
             cond,
-            #max_new_tokens=1000,
+            max_new_tokens=90 * 30,
             cfg_scale=conditioning.stability
         )
 

@@ -18,6 +18,8 @@ class InferenceEngineElevenlabs(InferenceEngineBase):
 
         super().__init__()
 
+        self.is_local = False
+
     def initialize_model(self, model: Literal["eleven_multilingual_v2", "eleven_flash_v2_5", "eleven_turbo_v2_5"]) -> None:
         key = self._key_manager.get_secret("elevenlabs_api_key")
 

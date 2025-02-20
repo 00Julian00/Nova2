@@ -1,6 +1,7 @@
 """
 Description: Holds all data required to run TTS inference.
 """
+
 import torch
 
 class TTSConditioning:

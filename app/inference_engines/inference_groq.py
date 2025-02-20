@@ -16,6 +16,8 @@ class InferenceEngineGroq(InferenceEngineBase):
 
         super().__init__()
 
+        self.is_local = False
+
     def initialize_model(self, conditioning: LLMConditioning) -> None:
         key = self._key_manager.get_secret("groq_api_key")
 

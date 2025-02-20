@@ -1,4 +1,4 @@
--e api/
+tool_api/
 torch
 qdrant_client
 sqlalchemy
@@ -23,3 +23,7 @@ sudachidict_full
 safetensors
 psuitl
 nvidia-ml-py3
+silero-vad
+elevenlabs
+cryptography
+pydub

@@ -8,6 +8,7 @@ class InferenceEngineBase:
     """
     def __init__(self):
         self._type = "LLM"
+        self.is_local = False
 
     def initialize_model():
         """

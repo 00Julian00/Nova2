@@ -1,6 +1,7 @@
 """
 Description: Holds all data required to run the transcriptor.
 """
+
 from typing import Literal
 
 import torch

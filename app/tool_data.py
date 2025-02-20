@@ -2,6 +2,8 @@
 Description: Holds all data required for tool use.
 """
 
+from typing import Callable, List
+
 class LLMToolParameter:
     def __init__(
                 self,
@@ -72,6 +74,18 @@ class LLMTool:
             }
         }
         return tool
+
+class LoadedTool:
+    def __init__(
+                self,
+                name: str,
+                class_instance: Callable,
+                ) -> None:
+        """
+        Defines a list of class instance of a tool together with its name from the metadata.
+        """
+        self.name = name
+        self.class_instance = class_instance
 
 class LLMToolCallParameter:
     def __init__(

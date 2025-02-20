@@ -2,9 +2,6 @@
 Description: This script is the API for the tools that they can use to interact with Nova and receive data from the system via the event system.
 """
 
-from pathlib import Path
-import importlib.util
-
 from app import event_system
 from app import context_data_manager
 
@@ -29,6 +26,7 @@ class Nova:
         return event_system.event_exists(event_name)
 
     # LLM interaction
+    @DeprecationWarning
     def add_to_context(self, context: str, tool_name: str) -> None:
         context_data_manager.add_to_context(source={"tool": tool_name}, content=context)
 
@@ -52,36 +50,15 @@ class ToolBaseClass:
         return cls.__subclasses__()
     
     # Custom methods for tools
-    def on_startup():
+    def on_startup(self) -> None:
         """
         This method will be called once when the system starts.
         Subscribe to events and run other initialization logic here.
         """
         pass
 
-class ExternalToolManager:
-    def __init__(self) -> None:
+    def on_call(self, **kwargs) -> None:
         """
-        Manages the tools in the "tools" folder. Also manages tool initialization and inheritance. Is controled from "ToolManager".
+        This method will be called when the tools is executed. Collect parameters and start tool logic here.
         """
-        self._tools = []
-
-    def initialize_tools(self) -> None:
-        """
-        Initializes all tools by loading them into memory and calling their startup methods.
-        """
-        # Load all .py files in the tools folder into memory, else they can't be used via inheritance or event system.
-        tools_dir = Path(__file__).parent.parent.parent / "tools"
-        for tool_dir in tools_dir.iterdir():
-            if tool_dir.is_dir():
-                for py_file in tool_dir.glob("*.py"):
-                    spec = importlib.util.spec_from_file_location(py_file.stem, py_file)
-                    if spec and spec.loader:
-                        module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(module)
-
-        # Run the on_startup method for all tool classes.
-        for tool_class in ToolBaseClass.get_subclasses():
-            tool_instance = tool_class()
-            self._tools.append(tool_instance)
-            tool_instance.on_startup()
+        pass

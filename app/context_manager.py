@@ -1,12 +1,13 @@
 """
 Description: This script collects all data provided from the voice analysis and stores them in long and short term context memory.
 """
+
 import threading
 
 import torch
 
 from .context_data_manager import ContextDataManager
-from .context_data import Listener
+from .context_data import ContextSource
 from .database_manager import VoiceDatabaseManager
 from .llm_data import Conversation, Message
 from .transcriptor_data import Word
@@ -19,20 +20,20 @@ class ContextManager:
         self._context_data_manager = ContextDataManager()
         self._voice_database_manager = VoiceDatabaseManager()
 
-    def record_data(self, listener: Listener) -> None:
+    def record_data(self, source: ContextSource) -> None:
         """
-        Begins to listen to the listener and record the data.
+        Begins to listen to the source and record the data.
         """
-        self._context_recorder = threading.Thread(target=self._record_context, args=(listener,))
+        self._context_recorder = threading.Thread(target=self._record_context, args=(source,))
 
-    def _record_context(self, listener: Listener) -> None:
+    def _record_context(self, source: ContextSource) -> None:
         """
         Prepares the data from 'transcriptor.py' to be stored in 'context.json'.
         """
         last_sentence = ""
         has_sentence_been_finished = False
 
-        for sentence in listener.data():
+        for sentence in source.data():
             sentence_string = self._word_array_to_string(sentence)
 
             if sentence_string != last_sentence:

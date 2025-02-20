@@ -1,6 +1,7 @@
 """
 Description: This script uses fasterwhisper to continously transcribe audio data from the microphone. It also creates voice embeddings.
 """
+
 import os
 import queue
 import threading
@@ -343,22 +344,3 @@ class VoiceProcessingHelpers:
             torch.FloatTensor: The average embedding.
         """
         return torch.mean(torch.stack(embeddings), dim=0)
-
-if __name__ == "__main__":
-    transcriptor = VoiceAnalysis(
-        microphone_index=4,
-        speculative=False,
-        whisper_model="deepdml/faster-whisper-large-v3-turbo-ct2",
-        device="cuda",
-        voice_boost=0,
-        language="de",
-        verbose=True
-    )
-
-    print("Starting transcription.")
-
-    for _ in transcriptor.start():
-        text = VoiceProcessingHelpers.word_array_to_string(_)
-
-        if (text != ""):
-            print(text)

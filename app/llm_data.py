@@ -1,6 +1,7 @@
 """
 Description: Holds all data required to run inference on LLMs.
 """
+
 from typing import Literal
 
 from .tool_data import LLMToolCall
@@ -45,7 +46,7 @@ class LLMResponse:
     def __init__(
                 self,
                 message: str | None = None,
-                tool_calls: LLMToolCall | None = None,
+                tool_calls: list[LLMToolCall] | None = None,
                 used_tokens: int = 0
                 ) -> None:
         """

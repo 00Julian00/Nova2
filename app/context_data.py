@@ -1,6 +1,7 @@
 """
 Description: Holds all data related to context data.
 """
+
 from typing import Generator
 from datetime import datetime
 
@@ -28,7 +29,7 @@ class Context:
         """
         self.data_points = data_points
 
-class Listener:
+class ContextSource:
     def __init__(self, generator: Generator) -> None:
         """
         Holds the data generator produced by a context generator.

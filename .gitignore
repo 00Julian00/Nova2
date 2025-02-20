@@ -14,7 +14,8 @@ data/*
 
 debug_runner.py
 
-api/nova_api.egg-info/*
+tool_api/tool_api.egg-info
+tool_api/tool_api.egg-info/*
 
 app/world_model.py
 app/pipeline.py
@@ -22,5 +23,3 @@ app/pipeline.py
 pretrained_models/*
 
 notes.txt
-
-test.py

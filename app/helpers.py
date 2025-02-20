@@ -1,6 +1,7 @@
 """
 Description: A script that holds various helper code.
 """
+
 import sys
 import os
 from contextlib import contextmanager

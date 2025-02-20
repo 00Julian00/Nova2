@@ -1,6 +1,7 @@
 """
 Description: Acts as the API for the entire Nova system.
 """
+
 from app.tts_manager import *
 from app.llm_manager import *
 from app.audio_manager import *
@@ -43,8 +44,16 @@ class Nova:
         self._tts.configure(inference_engine=inference_engine, conditioning=conditioning)
 
     def mem_check(self) -> MemCheckResult:
-        tts_model_mem = self._mem_manager.estimate_memory_requirement(self._tts._conditioning_dirty.model)
-        llm_model_mem = self._mem_manager.estimate_memory_requirement(self._llm._conditioning_dirty.model)
+        if self._tts._inference_engine_dirty.is_local:
+            tts_model_mem = self._mem_manager.estimate_memory_requirement(self._tts._conditioning_dirty.model)
+        else:
+            tts_model_mem = 0
+
+        if self._llm._inference_engine_dirty.is_local:
+            llm_model_mem = self._mem_manager.estimate_memory_requirement(self._llm._conditioning_dirty.model)
+        else:
+            llm_model_mem = 0
+        
         stt_model_mem = self._mem_manager.estimate_memory_requirement(self._stt._conditioning_dirty.model)
 
         vram_required = tts_model_mem + llm_model_mem
@@ -92,11 +101,21 @@ class Nova:
         """
         return self._tts.run_inference(text=text)
 
-    def start_transcriptor(self) -> Listener:
-        return Listener(self._stt.start())
+    def start_transcriptor(self) -> ContextSource:
+        return ContextSource(self._stt.start())
 
-    def record_context(self, listener: Listener) -> None:
-        self._context.record_data(listener)
+    def bind_context_source(self, source: ContextSource) -> None:
+        self._context.record_data(source)
 
     def play_audio(self, audio_data: AudioData) -> None:
+        """
+        Use the built in audio player to play audio. Only accepts an AudioData object.
+        """
         self._player.play_audio(audio_data)
+
+    def wait_for_audio_playback_end(self) -> None:
+        """
+        Halts the code execution until the audio player is done playing the current audio.
+        """
+        while self._player.is_playing():
+            time.sleep(0.1)

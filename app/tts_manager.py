@@ -1,6 +1,7 @@
 """
 Description: This script handles text-to-speech.
 """
+
 from .inference_engines.inference_base_tts import InferenceEngineBase
 from .tts_data import TTSConditioning
 from .audio_manager import AudioData
@@ -52,10 +53,20 @@ class TTSManager:
         Returns:
             AudioData: The generated audio data.
         """
-        audio_data = self._inference_engine.run_inference(
-                                                        conditioning=self._conditioning,
-                                                        text=text,
-                                                        stream=False
-                                                        )
+
+        split_text = text.split(". ")
+
+        data_chunks = []
+
+        for sentence in split_text:
+            data_chunks.append(self._inference_engine.run_inference(
+                                                            conditioning=self._conditioning,
+                                                            text=sentence,
+                                                            stream=False
+                                                            )[0])
         
-        return AudioData(audio_data[0])
+        data = AudioData()
+
+        data._store_chunks(data_chunks)
+
+        return data
