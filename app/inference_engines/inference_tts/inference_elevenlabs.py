@@ -3,11 +3,11 @@ from typing import Literal
 from elevenlabs.client import ElevenLabs
 from elevenlabs import Voice, VoiceSettings
 
-from .inference_base_tts import InferenceEngineBase
-from .. import security
-from ..tts_data import TTSConditioning
+from .inference_base_tts import InferenceEngineBaseTTS
+from ... import security
+from ...tts_data import TTSConditioning
 
-class InferenceEngineElevenlabs(InferenceEngineBase):
+class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
     def __init__(self) -> None:
         """
         This class provides the interface to run inference via the elevenlabs API.

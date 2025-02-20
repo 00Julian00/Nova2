@@ -1,11 +1,11 @@
 import groq
 
-from .inference_base_llm import InferenceEngineBase
-from ..tool_data import *
-from ..security import *
-from ..llm_data import *
+from .inference_base_llm import InferenceEngineBaseLLM
+from ...tool_data import *
+from ...security import *
+from ...llm_data import *
 
-class InferenceEngineGroq(InferenceEngineBase):
+class InferenceEngineGroq(InferenceEngineBaseLLM):
     def __init__(self):
         """
         This class provides the interface to run inference via the groq API.

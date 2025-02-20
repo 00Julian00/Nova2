@@ -7,7 +7,6 @@ from app.llm_manager import *
 from app.audio_manager import *
 from app.transcriptor import *
 from app.context_manager import *
-from app.memory_manager import *
 from app.inference_engines import *
 from app.tool_manager import *
 
@@ -23,8 +22,6 @@ class Nova:
         self._context = ContextManager()
         self._player = AudioPlayer()
 
-        self._mem_manager = MemoryManager()
-
         self._tools = ToolManager()
 
     def configure_transcriptor(self, conditioning: TranscriptorConditioning) -> None:
@@ -33,13 +30,13 @@ class Nova:
         """
         self._stt.configure(conditioning=conditioning)
 
-    def configure_llm(self, inference_engine: InferenceEngineBase, conditioning: LLMConditioning) -> None:
+    def configure_llm(self, inference_engine: InferenceEngineBaseLLM, conditioning: LLMConditioning) -> None:
         """
         Configure the LLM system.
         """
         self._llm.configure(inference_engine=inference_engine, conditioning=conditioning)
 
-    def configure_tts(self, inference_engine: InferenceEngineBase, conditioning: TTSConditioning) -> None:
+    def configure_tts(self, inference_engine: InferenceEngineBaseTTS, conditioning: TTSConditioning) -> None:
         """
         Configure the Text-to-Speech system.
         """

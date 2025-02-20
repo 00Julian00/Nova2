@@ -5,14 +5,14 @@ import torch
 import torchaudio
 import numpy as np
 
-from ..zonos.model import Zonos
-from ..zonos.conditioning import make_cond_dict
-from .inference_base_tts import InferenceEngineBase
-from ..tts_data import TTSConditioning
+from ...zonos.model import Zonos
+from ...zonos.conditioning import make_cond_dict
+from .inference_base_tts import InferenceEngineBaseTTS
+from ...tts_data import TTSConditioning
 
 import sounddevice as sd
 
-class InferenceEngineZonos(InferenceEngineBase):
+class InferenceEngineZonos(InferenceEngineBaseTTS):
     def __init__(self) -> None:
         """
         This class provides the interface to run inference via Zonos.

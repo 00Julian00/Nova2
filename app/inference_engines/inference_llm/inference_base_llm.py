@@ -2,7 +2,7 @@
 Description: Provides a base class for all LLM inference engines to ensure a consistent structure and documentation.
 """
 
-class InferenceEngineBase:
+class InferenceEngineBaseLLM:
     """
     Provides a base class for all LLM inference engines to ensure a consistent structure.
     """

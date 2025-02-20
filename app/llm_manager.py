@@ -7,7 +7,7 @@ from transformers import AutoTokenizer
 from .tool_data import LLMTool
 from .tool_manager import *
 from .database_manager import MemoryEmbeddingDatabaseManager
-from .inference_engines.inference_base_llm import InferenceEngineBase
+from .inference_engines import InferenceEngineBaseLLM
 from .llm_data import *
 
 class LLMManager:
@@ -20,8 +20,8 @@ class LLMManager:
 
         self._inference_engine_dirty = None
         self._conditioning_dirty = None
-        
-    def configure(self, inference_engine: InferenceEngineBase, conditioning: LLMConditioning) -> None:
+
+    def configure(self, inference_engine: InferenceEngineBaseLLM, conditioning: LLMConditioning) -> None:
         """
         Configure the LLM system.
         """

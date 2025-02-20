@@ -2,7 +2,7 @@
 Description: Provides a base class for all TTS inference engines to ensure a consistent structure and documentation.
 """
 
-class InferenceEngineBase:
+class InferenceEngineBaseTTS:
     """
     Provides a base class for all TTS inference engines to ensure a consistent structure.
     """
