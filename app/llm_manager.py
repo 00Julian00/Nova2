@@ -50,7 +50,7 @@ class LLMManager:
                 self,
                 conversation: Conversation,
                 tools: list[LLMTool] | None,
-                memory_config: MemoryConfig,
+                memory_config: MemoryConfig | None = None,
                 instruction: str | None = None
                 ) -> LLMResponse:
         """
@@ -69,7 +69,7 @@ class LLMManager:
         if instruction != "" and instruction is not None:
             conversation.add_message(Message(author="system", content=instruction))
 
-        if memory_config.retrieve_memories:
+        if memory_config and memory_config.retrieve_memories:
             db = MemoryEmbeddingDatabaseManager()
             db.open()
 

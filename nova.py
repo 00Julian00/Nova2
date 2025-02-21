@@ -8,7 +8,6 @@ from app.audio_manager import *
 from app.transcriptor import *
 from app.context_manager import *
 from app.inference_engines import *
-from app.tool_manager import *
 from app.security_manager import *
 
 class Nova:

@@ -87,7 +87,7 @@ class SecretsManager:
             else:
                 self.add_secret(name=Secrets.HUGGINGFACE, key=token)
 
-        if token is not "":
+        if token != "":
             try:
                 huggingface_hub.login(token=token)
             except Exception as e:

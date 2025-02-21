@@ -1,1 +1,1 @@
-from tool_api import Nova, ToolBaseClass
+from .tool_api import Nova, ToolBaseClass

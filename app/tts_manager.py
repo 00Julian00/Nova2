@@ -2,7 +2,7 @@
 Description: This script handles text-to-speech.
 """
 
-from .inference_engines.inference_base_tts import InferenceEngineBase
+from .inference_engines import InferenceEngineBaseTTS
 from .tts_data import TTSConditioning
 from .audio_manager import AudioData
 
@@ -17,7 +17,7 @@ class TTSManager:
         self._inference_engine_dirty = None
         self._conditioning_dirty = None
 
-    def configure(self, inference_engine: InferenceEngineBase, conditioning: TTSConditioning) -> None:
+    def configure(self, inference_engine: InferenceEngineBaseTTS, conditioning: TTSConditioning) -> None:
         """
         Configure the TTS system.
         """

@@ -9,7 +9,7 @@ import warnings
 import importlib.util
 import ast
 
-from tool_api import ToolBaseClass
+from tool_api import *
 from .tool_data import LLMTool, LLMToolParameter, LLMToolCall, LoadedTool
 
 class ToolManager:

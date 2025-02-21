@@ -24,3 +24,5 @@ silero-vad
 elevenlabs
 cryptography
 pydub
+llama-cpp-python
+openai

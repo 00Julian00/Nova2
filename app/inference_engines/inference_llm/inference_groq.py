@@ -31,7 +31,7 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
 
         self._model = conditioning.model
 
-    def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None):
+    def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None) -> LLMResponse:
         conversation = conversation.conversation_to_llm_format()
         
         # Check if tools were parsed
