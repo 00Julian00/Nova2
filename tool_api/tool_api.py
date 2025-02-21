@@ -2,8 +2,10 @@
 Description: This script is the API for the tools that they can use to interact with Nova and receive data from the system via the event system.
 """
 
-from app import event_system
-from app import context_data_manager
+from typing import List
+
+from app.context_data_manager import ContextDatapoint
+from app.context_manager import ContextManager
 
 class Nova:
     def __init__(self) -> None:
@@ -11,24 +13,9 @@ class Nova:
         This class provides a simple API for external tools to interact with internal logic.
         """
         pass
-    
-    # Event system
-    def subscribe_to_event(self, event_name: str, callback: callable) -> None:
-        event_system.subscribe(event_name, callback)
 
-    def unsubscribe_from_event(self, event_name: str, callback: callable) -> None:
-        event_system.unsubscribe(event_name, callback)
-
-    def is_subscribed(self, event_name: str, callback: callable) -> bool:
-        return event_system.is_subscribed(event_name, callback)
-
-    def event_exists(self, event_name: str) -> bool:
-        return event_system.event_exists(event_name)
-
-    # LLM interaction
-    @DeprecationWarning
-    def add_to_context(self, context: str, tool_name: str) -> None:
-        context_data_manager.add_to_context(source={"tool": tool_name}, content=context)
+    def add_to_context(self, datapoint: ContextDatapoint) -> None:
+        ContextManager.source_list.add(datapoint)
 
 # Used to run methods inside tools in the "tools" folder via inheritance.
 class ToolBaseClass:
@@ -39,7 +26,7 @@ class ToolBaseClass:
         pass
 
     @classmethod
-    def get_subclasses(cls) -> list[type]:
+    def get_subclasses(cls) -> List[type]:
         """
         Returns all subclasses of the current class.
 

@@ -10,13 +10,21 @@ class LLMConditioning:
     def __init__(
                 self,
                 model: str,
+                file: str = "",
                 temperature: float = 0.8,
                 max_completion_tokens: int = 1024
                 ) -> None:
         """
         Stores all values required for LLM conditioning.
+
+        Arguments:
+            model (str): The model name. Must a valid huggingface repo ID.
+            file (str): The file to use from that repo. Must be GGUF format.
+            temperature (float): The temperature to use for inference.
+            max_completion_tokens (int): How many tokens the model is allowed to generate.
         """
         self.model = model
+        self.file = file
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
 

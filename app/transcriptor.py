@@ -6,7 +6,7 @@ import os
 import queue
 import threading
 import time
-from typing import Generator
+from typing import Generator, List
 import multiprocessing
 
 from . import helpers
@@ -24,6 +24,8 @@ with helpers.suppress_output():
 import silero_vad
 
 from .transcriptor_data import Word, TranscriptorConditioning
+from .database_manager import VoiceDatabaseManager
+from .context_data import *
 
 SAMPLE_RATE = 16000
 
@@ -38,6 +40,8 @@ class VoiceAnalysis:
 
         if os.name == "nt":
             os.environ["KMP_DUPLICATE_LIB_OK"] = "True" # Only necessary for windows
+
+        self._voice_database_manager = VoiceDatabaseManager()
 
     def configure(self, conditioning: TranscriptorConditioning):
         self._conditioning_dirty = conditioning
@@ -154,7 +158,7 @@ class VoiceAnalysis:
 
         return len(timestamps) > 0
 
-    def _transcribe(self, audio_tensor: torch.FloatTensor) -> list[Word]:
+    def _transcribe(self, audio_tensor: torch.FloatTensor) -> List[Word]:
         if self._language is not None:
             segments, info = self._model.transcribe(audio_tensor.cpu().numpy(), beam_size=5, language=self._language, condition_on_previous_text=False, word_timestamps=True)
         else:
@@ -165,7 +169,7 @@ class VoiceAnalysis:
                 transcription.append(Word(text=word.word, start=word.start, end=word.end))
         return transcription
 
-    def _update_transcription(self, words: list[Word]) -> tuple[list[Word], int]:
+    def _update_transcription(self, words: List[Word]) -> tuple[List[Word], int]:
         new_locked_words = self._locked_words
         for i in range(len(words)):
             if i < self._locked_words:
@@ -200,7 +204,7 @@ class VoiceAnalysis:
             return torch.zeros(1, 512, device=self._device)  # Return a zero embedding as a fallback
 
     
-    def start(self) -> Generator[list[Word], None, None]:
+    def start(self) -> Generator[ContextDatapoint]:
         """
         Generator for live voice analysis.
 
@@ -209,7 +213,7 @@ class VoiceAnalysis:
         When a sentence is finished, the generator yields the full sentence, until the user continues speaking, which will reset the sentence.
 
         Returns:
-            Generator[list[Word], None, None]: The generator that yields the data.
+            Generator[ContextDatapoint]: The generator that yields the data.
         """
         self._recording_thread.start()
 
@@ -258,21 +262,48 @@ class VoiceAnalysis:
                 for i, word in enumerate(self._current_sentence):
                     self._current_sentence[i].speaker_embedding = self._generate_speaker_embedding(audio_tensor, self._current_sentence[i].start, self._current_sentence[i].end)
                     if i < self._locked_words:
-                        print(word.text)
                         confirmed_transcription.append(word)
 
                     speculative_transcription.append(word)
 
+                # Sentence is finished
                 if len(confirmed_transcription) > 0:
                     if "." in confirmed_transcription[len(confirmed_transcription) - 1].text or "!" in confirmed_transcription[len(confirmed_transcription) - 1].text or "?" in confirmed_transcription[len(confirmed_transcription) - 1].text:
                         current_audio_data = None
                         self._current_sentence = []
                         self._locked_words = 0
 
-            if self._speculative:
-                yield speculative_transcription
-            else:
-                yield confirmed_transcription
+                        # Construct the context datapoint
+                        voice = self.resolve_speaker(words=confirmed_transcription)
+                        datapoint = ContextDatapoint(
+                            source=Voice(speaker=voice),
+                            content=VoiceProcessingHelpers.word_array_to_string(confirmed_transcription)
+                            )
+                        
+                        yield datapoint
+
+    def resolve_speaker(self, words: List[Word]) -> str:
+        """
+        Finds the name of the current speaker 
+        """
+        embedding_list = []
+        for word in words:
+            embedding_list.append(word.speaker_embedding)
+
+        avg_embedding = VoiceProcessingHelpers.take_average_embedding(embedding_list)
+
+        self._voice_database_manager.open()
+
+        voice = self._voice_database_manager.get_voice_name_from_embedding(avg_embedding)
+
+        if voice and voice[1] > 0.8: # If voice was found and it's close enough use it. Otherwise create a new one
+            voice_name = voice[0]
+        else:
+            voice_name = self._voice_database_manager.create_unknown_voice(avg_embedding)
+
+        self._voice_database_manager.close()
+
+        return voice_name
         
     def close(self) -> None:
         """
@@ -303,12 +334,12 @@ class VoiceProcessingHelpers:
         pass
     
     @staticmethod
-    def word_array_to_string(word_array: list[Word]) -> str:
+    def word_array_to_string(word_array: List[Word]) -> str:
         """
         Extracts the text from an array of word objects and returns it as a string.
 
         Arguments:
-            word_array (list[Word]): The array of word objects that will be converted to a string.
+            word_array (List[Word]): The array of word objects that will be converted to a string.
 
         Returns:
             str: The full extracted text.
@@ -333,12 +364,12 @@ class VoiceProcessingHelpers:
         return (F.cosine_similarity(emb1.squeeze(), emb2.squeeze(), dim=0).mean().item())
     
     @staticmethod
-    def take_average_embedding(embeddings: list[torch.FloatTensor]) -> torch.FloatTensor:
+    def take_average_embedding(embeddings: List[torch.FloatTensor]) -> torch.FloatTensor:
         """
-        Takes the average of a list of embeddings.
+        Takes the average of a List of embeddings.
 
         Arguments:
-            embeddings (list[torch.FloatTensor]): The embedding list.
+            embeddings (List[torch.FloatTensor]): The embedding List.
 
         Returns:
             torch.FloatTensor: The average embedding.

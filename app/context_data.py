@@ -4,35 +4,55 @@ Description: Holds all data related to context data.
 
 from typing import Generator
 from datetime import datetime
+from queue import Queue
+from enum import Enum
+from threading import Thread
+
+from .context_sources import *
 
 class ContextDatapoint:
     def __init__(
-            self,
-            source, # All possible sources are in context_sources.py
-            content: str,
-            timestamp: datetime
-            ) -> None:
+                self,
+                source: ContextSourceBase,
+                content: str,
+                ) -> None:
         """
         This class holds a singular datapoint in the context.
         """
         self.source = source
         self.content = content
-        self.timestamp = timestamp
+        self.timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+    def format(self) -> dict:
+        """
+        Returns the contents formatted to a dictionary so it can be serialized to json.
+        """
+        return {
+            "source": {
+                "type": self.source.__class__.__name__,
+                "metadata": self.source.__dict__
+            },
+            "content": self.content,
+            "timestamp": self.timestamp
+        }
 
 class Context:
     def __init__(
-            self,
-            data_points: list[ContextDatapoint]
-            ) -> None:
+                self,
+                data_points: list[ContextDatapoint]
+                ) -> None:
         """
         This class stores context which is a list of datapoints all with source, content and timestamp.
         """
         self.data_points = data_points
 
 class ContextSource:
-    def __init__(self, generator: Generator) -> None:
+    def __init__(
+                self,
+                generator: Generator
+                ) -> None:
         """
-        Holds the data generator produced by a context generator.
+        Holds the data generator produced by a context generator. Yields ContextDatapoint.
         """
         self._generator = generator
 
@@ -42,3 +62,68 @@ class ContextSource:
         """
         for datapoint in self._generator:
             yield datapoint
+
+class ContextSourceList:
+    def __init__(self) -> None:
+        """
+        Manages a dynamic thread-safe list of context sources that can be itterated through.
+        """
+        self._index = 0
+        self._sources = []
+
+        self._command_queue = Queue()
+
+        self._worker_thread = Thread(target=self._worker, daemon=True)
+        self._worker_thread.start()
+
+    def add(self, context_source: ContextSource) -> None:
+        self._command_queue.put((ListCommands.ADD, context_source))
+
+    def remove(self, context_source: ContextSource) -> None:
+        self._command_queue.put((ListCommands.REMOVE, context_source))
+
+    def get_next(self) -> ContextDatapoint:
+        result = Queue()
+        self._command_queue.put((ListCommands.GET_NEXT, result))
+        return result.get()
+    
+    def _worker(self):
+        while True:
+            command = self._command_queue.get()
+
+            match command[0]:
+                case ListCommands.ADD:
+                    self._sources.append(command[1].data())
+                case ListCommands.REMOVE:
+                    index = self._sources.index(command[1])
+
+                    self._sources.remove(command[1])
+
+                    if index < self._index:
+                        self._index -= 1
+                case ListCommands.GET_NEXT:
+                    result = None
+
+                    while not result:
+                        if len(self._sources) == 0:
+                            break
+
+                        try:
+                            result = next(self._sources[self._index])
+                        except StopIteration:
+                            self._sources.remove(self._sources[self._index])
+                    
+                    command[1].put(result) # Return the next item from the context source and then move onto the next source
+
+                    self._index += 1
+
+            # Prevent over and underflow
+            if self._index < 0:
+                self._index = len(self._sources) - 1
+            elif self._index >= len(self._sources):
+                self._index = 0
+
+class ListCommands(Enum):
+    ADD = "add"
+    REMOVE = "remove"
+    GET_NEXT = "get_next"

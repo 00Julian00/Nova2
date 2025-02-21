@@ -32,7 +32,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
                 n_gpu_layers = -1,
                 n_threads = multiprocessing.cpu_count(),
                 flash_attn = True,
-                filename="*Q4_K_L.gguf",
+                filename=conditioning.file,
                 verbose=False
             )
 
