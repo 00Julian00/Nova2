@@ -204,7 +204,7 @@ class VoiceAnalysis:
             return torch.zeros(1, 512, device=self._device)  # Return a zero embedding as a fallback
 
     
-    def start(self) -> Generator[ContextDatapoint]:
+    def start(self) -> Generator[ContextDatapoint, None, None]:
         """
         Generator for live voice analysis.
 

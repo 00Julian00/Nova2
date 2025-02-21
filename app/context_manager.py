@@ -3,6 +3,7 @@ Description: This script collects all data provided from the voice analysis and 
 """
 
 from threading import Thread
+import time
 
 import torch
 
@@ -40,6 +41,8 @@ class ContextManager:
                 continue
 
             self._context_data_manager.add_to_context(datapoint=datapoint)
+
+            time.sleep(0.1)
 
     def _word_array_to_string(self, word_array: list[Word]) -> str:
         text = ""

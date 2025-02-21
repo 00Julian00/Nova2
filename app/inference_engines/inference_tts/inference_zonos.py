@@ -19,12 +19,14 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
         """
 
         self._model = None
-        self._voice_files = Path(__file__).resolve().parent.parent.parent / "data" / "voices"
+        self._voice_files = Path(__file__).resolve().parent.parent.parent.parent / "data" / "voices"
         self._device = "cuda"
 
         super().__init__()
 
         self.is_local = True
+
+        self._voice = None
 
     def initialize_model(self, model: str = "Zyphra/Zonos-v0.1-transformer") -> None:
         self._model_name = model
@@ -91,20 +93,28 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
         self._model = None
 
     def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> bytes:
+        # Make sure the voice is only loaded once
+        if self._voice == None:
+            self._voice = self._get_voice(conditioning.voice)
+        
         if not conditioning.emotion:
-            # Defaults to happy
-            emotion = torch.tensor([[0.5000, 0.0100, 0.0100, 0.0100, 0.2000, 0.0100, 0.1600, 0.1000]], device=self._device)
+            # Use the standard emotion
+            cond = make_cond_dict(
+                text=text,
+                speaker=self._voice,
+                language=conditioning.language,
+                pitch_std=conditioning.expressivness,
+                speaking_rate=conditioning.speaking_rate
+            )
         else:
-            emotion = conditioning.emotion.to(self._device)
-
-        cond = make_cond_dict(
-            text=text,
-            speaker=self._get_voice(conditioning.voice),
-            language=conditioning.language,
-            emotion=emotion,
-            pitch_std=conditioning.expressivness,
-            speaking_rate=conditioning.speaking_rate
-        )
+            cond = make_cond_dict(
+                text=text,
+                speaker=self._voice,
+                language=conditioning.language,
+                emotion=conditioning.emotion.to(self._device),
+                pitch_std=conditioning.expressivness,
+                speaking_rate=conditioning.speaking_rate
+            )
 
         cond = self._model.prepare_conditioning(cond, device="cuda")
 

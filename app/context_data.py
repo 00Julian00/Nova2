@@ -7,6 +7,7 @@ from datetime import datetime
 from queue import Queue
 from enum import Enum
 from threading import Thread
+import time
 
 from .context_sources import *
 
@@ -122,6 +123,8 @@ class ContextSourceList:
                 self._index = len(self._sources) - 1
             elif self._index >= len(self._sources):
                 self._index = 0
+
+            time.sleep(0.1)
 
 class ListCommands(Enum):
     ADD = "add"

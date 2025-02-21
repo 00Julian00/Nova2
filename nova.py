@@ -42,12 +42,30 @@ class Nova:
         """
         self._tts.configure(inference_engine=inference_engine, conditioning=conditioning)
 
-    def apply_config(self) -> None:
+    def apply_config_all(self) -> None:
         """
         Updates the configuration of the transcriptor, LLM and TTS systems. Also loads the chosen models into memory.
         """
         self._tts.apply_config()
         self._llm.apply_config()
+        self._stt.apply_config()
+
+    def apply_config_llm(self) -> None:
+        """
+        Updates the configuration of the LLM system. Also loads the chosen models into memory.
+        """
+        self._llm.apply_config()
+
+    def apply_config_tts(self) -> None:
+        """
+        Updates the configuration of the TTS system. Also loads the chosen models into memory.
+        """
+        self._tts.apply_config()
+
+    def apply_config_transcriptor(self) -> None:
+        """
+        Updates the configuration of the trabscriptor system. Also loads the chosen models into memory.
+        """
         self._stt.apply_config()
 
     def load_tools(self) -> List[LLMTool]:

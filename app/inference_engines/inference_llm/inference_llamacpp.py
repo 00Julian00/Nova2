@@ -29,9 +29,9 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
         with suppress_output():
             self._model = Llama.from_pretrained(
                 repo_id=conditioning.model,
-                n_gpu_layers = -1,
-                n_threads = multiprocessing.cpu_count(),
-                flash_attn = True,
+                n_gpu_layers=-1,
+                n_threads=multiprocessing.cpu_count(),
+                flash_attn=True,
                 filename=conditioning.file,
                 verbose=False
             )

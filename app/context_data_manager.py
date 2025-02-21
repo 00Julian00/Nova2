@@ -57,7 +57,8 @@ class ContextDataManager:
                     break
             
             if not source_instance:
-                raise Exception(f"Got unknown context source {datapoint["source"]["type"]}")
+                dp = datapoint["source"]["type"]
+                raise Exception(f"Got unknown context source {dp}")
 
             datapoint_instance = ContextDatapoint(
                 source=source_instance,
