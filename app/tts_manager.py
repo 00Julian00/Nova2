@@ -59,14 +59,14 @@ class TTSManager:
         data_chunks = []
 
         for sentence in split_text:
-            data_chunks.append(self._inference_engine.run_inference(
+            data_chunks.extend(self._inference_engine.run_inference(
                                                             conditioning=self._conditioning,
                                                             text=sentence,
                                                             stream=False
-                                                            )[0])
+                                                            ))
         
         data = AudioData()
 
-        data._store_chunks(data_chunks)
+        data._store_audio(data_chunks)
 
         return data

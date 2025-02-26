@@ -42,7 +42,7 @@ class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
     def free(self) -> None:
         self._model = None
 
-    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool) -> bytes | list[bytes]:
+    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool) -> bytes:
         voice = Voice(
                     voice_id=conditioning.voice,
                     settings=VoiceSettings(
@@ -53,9 +53,9 @@ class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
                                         )
                     )
         
-        return self._elevenlabs_client.generate(
+        return list(self._elevenlabs_client.generate(
             text = text,
             voice=voice,
             model = self._model,
-            stream = stream
-        )
+            stream = False
+        ))

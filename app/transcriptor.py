@@ -60,12 +60,13 @@ class VoiceAnalysis:
         self._log(f"Using device '{self._device}'.")
         torch.set_default_dtype(torch.float32)
 
-        self._model = WhisperModel(
-            model_size_or_path=self._conditioning.model,
-            device=self._device,
-            compute_type="float32",
-            cpu_threads=multiprocessing.cpu_count()
-            )
+        with helpers.suppress_output():
+            self._model = WhisperModel(
+                model_size_or_path=self._conditioning.model,
+                device=self._device,
+                compute_type="float32",
+                cpu_threads=multiprocessing.cpu_count()
+                )
         self._log(f"Whisper model of size '{self._conditioning.model}' loaded.")
         # Check if the language is valid
         if self._conditioning.language is not None:

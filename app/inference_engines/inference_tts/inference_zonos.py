@@ -142,4 +142,5 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
 
         wav_bytes = buffer.getvalue()
         buffer.close()
-        return [wav_bytes]
+        # At this point I have no idea why only index 0 should be returned, but it works better for some reason
+        return [[wav_bytes][0]]

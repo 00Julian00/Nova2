@@ -104,10 +104,12 @@ class LLMToolCall:
     def __init__(
                 self,
                 name: str,
-                parameters: list[LLMToolCallParameter]
+                parameters: list[LLMToolCallParameter],
+                id: str
                 ) -> None:
         """
         Defines a tool call made by the LLM.
         """
         self.name = name
         self.parameters = parameters
+        self.id = id

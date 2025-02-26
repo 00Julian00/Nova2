@@ -11,6 +11,8 @@ import ast
 
 from tool_api import *
 from .tool_data import LLMTool, LLMToolParameter, LLMToolCall, LoadedTool
+from .context_data_manager import ContextDatapoint, ContextDataManager
+from .context_sources import System
 
 class ToolManager:
     def __init__(self) -> None:
@@ -82,7 +84,8 @@ class ToolManager:
                 except:
                     warnings.warn(f"Failed to load script {script} into memory.")
 
-            self._loaded_tools.append(LoadedTool(name=tool_name, class_instance=inherited_class))
+            if tool_name != "":
+                self._loaded_tools.append(LoadedTool(name=tool_name, class_instance=inherited_class))
 
         return tools
     
@@ -109,11 +112,26 @@ class ToolManager:
                                 # Parameter failed to be cast so most likely it should remain a string
                                 params[param.name] = param.value
 
+                        tool.class_instance._tool_call_id = tool_call.id
                         tool.class_instance.on_call(**params)
                         
-                        break
+                        return
+
+                dp = ContextDatapoint(
+                    source=System(),
+                    content=f"Tool \"{tool_call.name}\" is not loaded in memory and can therefore not be executed."
+                )
+
+                ContextDataManager().add_to_context(datapoint=dp)
 
                 warnings.warn(f"Attempted to call tool {tool_call.name}, but no tool with this name is loaded.")
 
             except Exception as e:
+                dp = ContextDatapoint(
+                    source=System(),
+                    content=f"Tool \"{tool_call.name}\" failed to execute for an unknown reason."
+                )
+
+                ContextDataManager().add_to_context(datapoint=dp)
+
                 warnings.warn(f"Tool {tool_call.name} failed to execute with error: {e}")

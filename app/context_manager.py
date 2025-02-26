@@ -10,7 +10,6 @@ import torch
 from .context_data_manager import ContextDataManager
 from .context_data import ContextSource, ContextSourceList
 from .database_manager import VoiceDatabaseManager
-from .llm_data import Conversation, Message
 from .transcriptor_data import Word
 
 class ContextManager:
@@ -52,52 +51,3 @@ class ContextManager:
     
     def _take_average_embedding(self, embeddings: list[torch.FloatTensor]) -> torch.FloatTensor:
         return torch.mean(torch.stack(embeddings), dim=0)
-
-    #* Placeholder code to connect all systems together for first integrated tests.
-    def get_context(self) -> Conversation:
-        """
-        Load the context data from context.json and build a conversation from it.
-
-        Returns:
-            Conversation: The conversation built from the context data.
-        """
-        context = self._context_data_manager.get_context_data()
-
-        conversation = Conversation()
-
-        current_speaker = None # Keep track of the current voice to inform the LLM if the speaker has changed.
-
-        for entry in context:
-            if entry["source"] == {"assistant"}:
-                author = "assistant"
-            else:
-                author = "user"
-            
-            if "voice" in entry["source"]:
-                if entry["source"]["voice"] != current_speaker:
-                    current_speaker = entry["source"]["voice"]
-
-                    conversation.add_message(message=Message(
-                        author="system",
-                        content=f"The speaker has changed and is now: {current_speaker}."
-                    ))
-
-            conversation.add_message(message=Message(
-                author=author,
-                content=entry["content"]
-            ))
-
-        return conversation
-
-    def start(self) -> None:
-        """
-        Begin the data processing.
-        """
-        self._context_recorder.start()
-
-    def close(self) -> None:
-        """
-        End the data processing.
-        """
-        if self._context_recorder.is_alive():
-            self._context_recorder.join()

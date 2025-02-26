@@ -10,6 +10,7 @@ from threading import Thread
 import time
 
 from .context_sources import *
+from .llm_data import Conversation, Message
 
 class ContextDatapoint:
     def __init__(
@@ -28,14 +29,24 @@ class ContextDatapoint:
         """
         Returns the contents formatted to a dictionary so it can be serialized to json.
         """
-        return {
-            "source": {
-                "type": self.source.__class__.__name__,
-                "metadata": self.source.__dict__
-            },
-            "content": self.content,
-            "timestamp": self.timestamp
-        }
+        # Check if the source contains metadata
+        if bool(self.source.__dict__):
+            return {
+                "source": {
+                    "type": self.source.__class__.__name__,
+                    "metadata": self.source.__dict__
+                },
+                "content": self.content,
+                "timestamp": self.timestamp
+            }
+        else:
+            return {
+                "source": {
+                    "type": self.source.__class__.__name__
+                },
+                "content": self.content,
+                "timestamp": self.timestamp
+            }
 
 class Context:
     def __init__(
@@ -46,6 +57,46 @@ class Context:
         This class stores context which is a list of datapoints all with source, content and timestamp.
         """
         self.data_points = data_points
+
+    def to_conversation(self) -> Conversation:
+        """
+        Get the context as type Conversation that can be parsed to the LLM.
+        """
+        messages = []
+
+        for datapoint in self.data_points:
+            if type(datapoint.source) == Assistant: # Assistant message does not need a timestamp
+                messages.append(
+                    Message(
+                        author="assistant",
+                        content=datapoint.content
+                ))
+            elif type(datapoint.source) == Voice:
+                messages.append(
+                    Message(
+                        author="user",
+                        content=f"{datapoint.source.speaker} ({datapoint.timestamp}): {datapoint.content}"
+                ))
+            elif type(datapoint.source) == ToolResponse:
+                messages.append(
+                    Message(
+                        author="tool",
+                        name=datapoint.source.name,
+                        tool_call_id=datapoint.source.id,
+                        content=f"({datapoint.timestamp}) {datapoint.content}"
+                    )
+                )
+            elif type(datapoint.source) == System:
+                messages.append(
+                    Message(
+                        author="system",
+                        content=f"{datapoint.timestamp}: {datapoint.content}"
+                    )
+                )
+            else:
+                raise Exception(f"Could not format context to conversation. Unknown source: {type(datapoint.source)}")
+
+        return Conversation(messages)
 
 class ContextSource:
     def __init__(

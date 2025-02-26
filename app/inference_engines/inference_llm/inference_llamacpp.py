@@ -33,6 +33,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
                 n_threads=multiprocessing.cpu_count(),
                 flash_attn=True,
                 filename=conditioning.file,
+                n_ctx=1024,
                 verbose=False
             )
 

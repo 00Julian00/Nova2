@@ -3,16 +3,18 @@ Description: Holds all data required to run inference on LLMs.
 """
 
 from typing import Literal
+import json
 
-from .tool_data import LLMToolCall
+from .tool_data import LLMToolCall, LLMToolCallParameter
 
 class LLMConditioning:
     def __init__(
                 self,
                 model: str,
                 file: str = "",
-                temperature: float = 0.8,
-                max_completion_tokens: int = 1024
+                temperature: float = 1.0,
+                max_completion_tokens: int = 1024,
+                add_default_sys_prompt: bool = True
                 ) -> None:
         """
         Stores all values required for LLM conditioning.
@@ -22,11 +24,13 @@ class LLMConditioning:
             file (str): The file to use from that repo. Must be GGUF format.
             temperature (float): The temperature to use for inference.
             max_completion_tokens (int): How many tokens the model is allowed to generate.
+            add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
         """
         self.model = model
         self.file = file
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
+        self.add_default_sys_prompt = add_default_sys_prompt
 
 class MemoryConfig:
     def __init__(
@@ -53,8 +57,8 @@ class MemoryConfig:
 class LLMResponse:
     def __init__(
                 self,
-                message: str | None = None,
-                tool_calls: list[LLMToolCall] | None = None,
+                message: str = "",
+                tool_calls: list[LLMToolCall] = [],
                 used_tokens: int = 0
                 ) -> None:
         """
@@ -78,26 +82,54 @@ class LLMResponse:
             self.message = llm_response.choices[0].message.content
 
         if llm_response.choices[0].message.tool_calls:
-            self.tool_calls = llm_response.choices[0].message.tool_calls
+            for tool_call in llm_response.choices[0].message.tool_calls:
+                params = []
+
+                args = json.loads(tool_call.function.arguments)
+
+                keys = list(args.keys())
+                values = list(args.values())
+
+                for i, _ in enumerate(keys):
+                    params.append(
+                        LLMToolCallParameter(
+                            name=keys[i],
+                            value=values[i]
+                        )
+                    )
+
+                self.tool_calls.append(
+                    LLMToolCall(
+                        name=tool_call.function.name,
+                        parameters=params,
+                        id=tool_call.id
+                    )
+                )
 
         self.used_tokens = llm_response.usage.total_tokens
 
 class Message:
     def __init__(
             self,
-            author: Literal["user", "assistant", "system"],
-            content: str
+            author: Literal["user", "assistant", "system", "tool"],
+            content: str,
+            name: str = "",
+            tool_call_id: str = ""
             ) -> None:
         """
         Stores one message in a conversation.
+
+        Parameter "name" and "tool_call_id" are only required if "author" == "tool"
         """
-        self._allowed_roles = ["user", "assistant", "system"]
+        self._allowed_roles = ["user", "assistant", "system", "tool"]
 
         if (author not in self._allowed_roles):
             raise TypeError(f"Author must one one of {self._allowed_roles}.")
 
         self.author = author
         self.content = content
+        self.name = name
+        self.tool_call_id = tool_call_id
 
 class Conversation:
     def __init__(self, conversation: list[Message] = []) -> None:
@@ -182,7 +214,10 @@ class Conversation:
         conversation = []
 
         for message in self._conversation:
-            conversation.append({"role": message.author, "content": message.content})
+            if message.author == "tool":
+                conversation.append({"role": "tool", "name": message.name, "content": message.content, "tool_call_id": message.tool_call_id})
+            else:
+                conversation.append({"role": message.author, "content": message.content})
 
         return conversation
     

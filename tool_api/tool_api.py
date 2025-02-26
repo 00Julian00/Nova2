@@ -4,8 +4,8 @@ Description: This script is the API for the tools that they can use to interact 
 
 from typing import List
 
-from app.context_data_manager import ContextDatapoint
-from app.context_manager import ContextManager
+from app.context_data_manager import ContextDatapoint, ContextDataManager
+from app.context_sources import ToolResponse
 
 class Nova:
     def __init__(self) -> None:
@@ -14,8 +14,23 @@ class Nova:
         """
         pass
 
-    def add_to_context(self, datapoint: ContextDatapoint) -> None:
-        ContextManager.source_list.add(datapoint)
+    def add_to_context(self, name: str, content: str, id: str) -> None:
+        """
+        Add a response from the tool to the context.
+
+        Arguments:
+            name (str): The name of the tool. Should match the name given in metadata.json.
+            content (str): The message that should be added to the context
+        """
+        dp = ContextDatapoint(
+            source=ToolResponse(
+                name=name,
+                id=id
+            ),
+            content=content
+        )
+
+        ContextDataManager().add_to_context(datapoint=dp)
 
 # Used to run methods inside tools in the "tools" folder via inheritance.
 class ToolBaseClass:
@@ -23,7 +38,7 @@ class ToolBaseClass:
     A tool must have a class that inherits from this class, or it can not be used by the system.
     """
     def __init__(self) -> None:
-        pass
+        self._tool_call_id = None
 
     @classmethod
     def get_subclasses(cls) -> List[type]:

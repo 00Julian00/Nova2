@@ -18,3 +18,20 @@ class Voice(ContextSourceBase):
                 speaker: str
                 ) -> None:
         self.speaker = speaker
+
+class Assistant(ContextSourceBase):
+    def __init__(self) -> None:
+        pass
+
+class ToolResponse(ContextSourceBase):
+    def __init__(
+                self,
+                name: str,
+                id: str
+                ) -> None:
+        self.name = name
+        self.id = id
+
+class System(ContextSourceBase):
+    def __init__(self) -> None:
+        pass

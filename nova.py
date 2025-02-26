@@ -2,13 +2,19 @@
 Description: Acts as the API for the entire Nova system.
 """
 
+from pathlib import Path
+import logging
+
 from app.tts_manager import *
 from app.llm_manager import *
 from app.audio_manager import *
 from app.transcriptor import *
 from app.context_manager import *
+from app.context_data_manager import *
 from app.inference_engines import *
 from app.security_manager import *
+
+from app.inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
 
 class Nova:
     def __init__(self) -> None:
@@ -20,9 +26,15 @@ class Nova:
         self._stt = VoiceAnalysis()
 
         self._context = ContextManager()
+        self._context_data = ContextDataManager()
         self._player = AudioPlayer()
         self._tools = ToolManager()
         self._security = SecretsManager()
+
+        self._max_ctx_length = 25
+        self._append_sys_prompt = True
+
+        logging.getLogger().setLevel(logging.CRITICAL)
 
     def configure_transcriptor(self, conditioning: TranscriptorConditioning) -> None:
         """
@@ -77,14 +89,14 @@ class Nova:
         """
         return self._tools.load_tools()
     
-    def execute_tool_calls(self, tool_calls: List[LLMToolCall]) -> None:
+    def execute_tool_calls(self, llm_response: LLMResponse) -> None:
         """
         Execute the tools that were called by the LLM.
 
         Arguments:
             tool_calls (List[LLMToolCall]): The tool calls from the LLM that should be executed.
         """
-        self._tools.execute_tool_call(tool_calls=tool_calls)
+        self._tools.execute_tool_call(tool_calls=llm_response.tool_calls)
 
     def run_llm(self, conversation: Conversation, memory_config: MemoryConfig = None, tools: List[LLMTool] = None, instruction: str = "") -> LLMResponse:
         """
@@ -128,6 +140,38 @@ class Nova:
         """
         self._context.record_data(source)
 
+    def get_context(self) -> Context:
+        """
+        Get the current context.
+        """
+        return self._context_data.get_context_data()
+    
+    def set_ctx_limit(self, ctx_limit: int) -> None:
+        """
+        Limit how many datapoints will be stored in context. This does not include memory.
+        Setting it to 0 will impose no limit, but the context will surpass the LLMs context window at some point.
+        Limit is 25 by default.
+        """
+        self._context_data.ctx_limit = ctx_limit
+    
+    def add_llm_response_to_context(self, response: LLMResponse) -> None:
+        """
+        Add LLMResponse to the context.
+        """
+        if len(response.tool_calls) > 0:
+            for tool_call in response.tool_calls:
+                self._context_data.add_to_context(
+                    ContextDatapoint(
+                        source=Assistant(),
+                        content=f"Called tool \"{tool_call.name}\""
+                    ))
+        else:
+            self._context_data.add_to_context(
+                ContextDatapoint(
+                    source=Assistant(),
+                    content=response.message
+                ))
+
     def play_audio(self, audio_data: AudioData) -> None:
         """
         Use the built in audio player to play audio. Only accepts an AudioData object.
@@ -140,6 +184,24 @@ class Nova:
         """
         while self._player.is_playing():
             time.sleep(0.1)
+
+    def is_playing_audio(self) -> bool:
+        """
+        Checks wether the audio player is currently playing any audio.
+        """
+        return self._player.is_playing()
+    
+    def clone_voice(self, mp3file: Path, name: str) -> None:
+        """
+        Clones a voice from an mp3 file and stores it in /data/voices.
+        After cloning, it can be used with the Zonos inference engine.
+
+        Arguments: 
+            mp3file (Path): The mp3 file containing a few seconds of speech of the voice that will be cloned.
+            name (str): What the voice should be called.
+        """
+        zonos = InferenceEngineZonos()
+        zonos.clone_voice(audio_dir=str(mp3file), name=name)
 
     def huggingface_login(self, overwrite: bool = False, token: str = ""):
         """
@@ -154,7 +216,7 @@ class Nova:
 
     def edit_secret(self, name: Secrets, value: str) -> None:
         """
-        Edit a secret, like an API key in the database. If the secret does not exist, it will be created. The value will be encrypted before it is stored.
+        Edit a secret, like an API key in the database. The value will be encrypted before it is stored.
 
         Arguments:
             name (Secrets): Which of the secrets to edit.

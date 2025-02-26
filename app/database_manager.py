@@ -222,8 +222,7 @@ class MemoryEmbeddingDatabaseManager:
     def _torch_tensor_to_float_list(self, embedding: torch.FloatTensor) -> List[float]:
         return embedding.squeeze().cpu().numpy().tolist()
 
-#TODO: Implement a confidence threshold for get_voice_name_from_embedding().
-#TODO: Rework the whole voice searching logic.
+
 class VoiceDatabaseManager:
     def __init__(self) -> None:
         """

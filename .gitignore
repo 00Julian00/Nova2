@@ -5,12 +5,10 @@ __pycache__/
 db/*
 !db/.gitkeep
 
-tools/*
-!tools/.gitkeep
+tools/debug_tool
+tools/debug_tool/*
 
-data/*
-!data/voices/
-!data/voices/**
+data/context.json
 
 debug_runner.py
 

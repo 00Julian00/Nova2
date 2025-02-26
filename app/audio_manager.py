@@ -13,22 +13,12 @@ class AudioData:
     def __init__(self) -> None:
         self._audio_data = None
 
-    def _store_chunk(self, data: bytes) -> None:
-        self._audio_data = self._process_chunk(data)
+    def _store_audio(self, data: list[bytes]) -> None:
+        data_full = b''.join(data)
 
-    def _store_chunks(self, data: list[bytes]) -> None:
-        audio_data = None
-        silence = AudioSegment.silent(duration=500)
-        
-        for chunk in data:
-            if audio_data is None:
-                audio_data = self._process_chunk(chunk)
-            else:
-                audio_data += silence + self._process_chunk(chunk)
+        self._audio_data = self._process_audio(data_full)
 
-        self._audio_data = audio_data
-
-    def _process_chunk(self, data: bytes) -> AudioSegment:
+    def _process_audio(self, data: bytes) -> AudioSegment:
         if data.startswith(b'RIFF'): # Handle wave audio
             with io.BytesIO(data) as bio:
                 with wave.open(bio, 'rb') as wave_file:
@@ -49,7 +39,7 @@ class AudioData:
                 io.BytesIO(data),
                 format='mp3'
             )
-
+        
 class AudioPlayer:
     def __init__(self) -> None:
         """
@@ -59,6 +49,7 @@ class AudioPlayer:
         self._stop_event = threading.Event()
 
     def play_audio(self, audio_data: AudioData) -> None:
+        self._current_playback = 0 # Make sure is_playing() is true
         self._player_thread = threading.Thread(target=self._player, daemon=True, args=(audio_data, ))
         self._player_thread.start()
 
@@ -92,4 +83,4 @@ class AudioPlayer:
             self._current_playback = None
 
     def is_playing(self) -> bool:
-        return self._player_thread is not None
+        return self._current_playback is not None
