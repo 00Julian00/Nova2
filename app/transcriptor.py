@@ -277,7 +277,7 @@ class VoiceAnalysis:
                         # Construct the context datapoint
                         voice = self.resolve_speaker(words=confirmed_transcription)
                         datapoint = ContextDatapoint(
-                            source=Voice(speaker=voice),
+                            source=ContextSource_Voice(speaker=voice),
                             content=VoiceProcessingHelpers.word_array_to_string(confirmed_transcription)
                             )
                         

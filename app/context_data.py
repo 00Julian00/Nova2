@@ -2,15 +2,46 @@
 Description: Holds all data related to context data.
 """
 
-from typing import Generator
+from typing import Generator, List
 from datetime import datetime
 from queue import Queue
 from enum import Enum
 from threading import Thread
 import time
 
-from .context_sources import *
 from .llm_data import Conversation, Message
+
+class ContextSourceBase:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def get_all_sources(cls) -> List[type]:
+        return cls.__subclasses__()
+
+class ContextSource_Voice(ContextSourceBase):
+    def __init__(
+                self,
+                speaker: str
+                ) -> None:
+        self.speaker = speaker
+
+class ContextSource_Assistant(ContextSourceBase):
+    def __init__(self) -> None:
+        pass
+
+class ContextSource_ToolResponse(ContextSourceBase):
+    def __init__(
+                self,
+                name: str,
+                id: str
+                ) -> None:
+        self.name = name
+        self.id = id
+
+class ContextSource_System(ContextSourceBase):
+    def __init__(self) -> None:
+        pass
 
 class ContextDatapoint:
     def __init__(
@@ -65,19 +96,19 @@ class Context:
         messages = []
 
         for datapoint in self.data_points:
-            if type(datapoint.source) == Assistant: # Assistant message does not need a timestamp
+            if type(datapoint.source) == ContextSource_Assistant: # Assistant message does not need a timestamp
                 messages.append(
                     Message(
                         author="assistant",
                         content=datapoint.content
                 ))
-            elif type(datapoint.source) == Voice:
+            elif type(datapoint.source) == ContextSource_Voice:
                 messages.append(
                     Message(
                         author="user",
                         content=f"{datapoint.source.speaker} ({datapoint.timestamp}): {datapoint.content}"
                 ))
-            elif type(datapoint.source) == ToolResponse:
+            elif type(datapoint.source) == ContextSource_ToolResponse:
                 messages.append(
                     Message(
                         author="tool",
@@ -86,7 +117,7 @@ class Context:
                         content=f"({datapoint.timestamp}) {datapoint.content}"
                     )
                 )
-            elif type(datapoint.source) == System:
+            elif type(datapoint.source) == ContextSource_System:
                 messages.append(
                     Message(
                         author="system",
@@ -98,7 +129,7 @@ class Context:
 
         return Conversation(messages)
 
-class ContextSource:
+class ContextGenerator:
     def __init__(
                 self,
                 generator: Generator
@@ -115,7 +146,7 @@ class ContextSource:
         for datapoint in self._generator:
             yield datapoint
 
-class ContextSourceList:
+class ContextGeneratorList:
     def __init__(self) -> None:
         """
         Manages a dynamic thread-safe list of context sources that can be itterated through.
@@ -128,10 +159,10 @@ class ContextSourceList:
         self._worker_thread = Thread(target=self._worker, daemon=True)
         self._worker_thread.start()
 
-    def add(self, context_source: ContextSource) -> None:
+    def add(self, context_source: ContextGenerator) -> None:
         self._command_queue.put((ListCommands.ADD, context_source))
 
-    def remove(self, context_source: ContextSource) -> None:
+    def remove(self, context_source: ContextGenerator) -> None:
         self._command_queue.put((ListCommands.REMOVE, context_source))
 
     def get_next(self) -> ContextDatapoint:

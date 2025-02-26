@@ -10,7 +10,7 @@ from app.llm_manager import *
 from app.audio_manager import *
 from app.transcriptor import *
 from app.context_manager import *
-from app.context_data_manager import *
+from app.context_manager import *
 from app.inference_engines import *
 from app.security_manager import *
 
@@ -26,7 +26,7 @@ class Nova:
         self._stt = VoiceAnalysis()
 
         self._context = ContextManager()
-        self._context_data = ContextDataManager()
+        self._context_data = ContextManager()
         self._player = AudioPlayer()
         self._tools = ToolManager()
         self._security = SecretsManager()
@@ -125,16 +125,16 @@ class Nova:
         """
         return self._tts.run_inference(text=text)
 
-    def start_transcriptor(self) -> ContextSource:
+    def start_transcriptor(self) -> ContextGenerator:
         """
         Start the transcriptor. The transcriptor will start to listen to the microphone audio.
 
         Returns:
             ContextSource: The context source representing the transcriptor. Needs to be binded to record its data in "bind_context_source()".
         """
-        return ContextSource(self._stt.start())
+        return ContextGenerator(self._stt.start())
 
-    def bind_context_source(self, source: ContextSource) -> None:
+    def bind_context_source(self, source: ContextGenerator) -> None:
         """
         Bind a context source. The data of a context source will only be recorded after beeing bound.
         """
@@ -162,13 +162,13 @@ class Nova:
             for tool_call in response.tool_calls:
                 self._context_data.add_to_context(
                     ContextDatapoint(
-                        source=Assistant(),
+                        source=ContextSource_Assistant(),
                         content=f"Called tool \"{tool_call.name}\""
                     ))
         else:
             self._context_data.add_to_context(
                 ContextDatapoint(
-                    source=Assistant(),
+                    source=ContextSource_Assistant(),
                     content=response.message
                 ))
 

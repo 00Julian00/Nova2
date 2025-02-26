@@ -11,8 +11,8 @@ import ast
 
 from tool_api import *
 from .tool_data import LLMTool, LLMToolParameter, LLMToolCall, LoadedTool
-from .context_data_manager import ContextDatapoint, ContextDataManager
-from .context_sources import System
+from .context_manager import *
+from .context_data import *
 
 class ToolManager:
     def __init__(self) -> None:
@@ -118,20 +118,20 @@ class ToolManager:
                         return
 
                 dp = ContextDatapoint(
-                    source=System(),
+                    source=ContextSource_System(),
                     content=f"Tool \"{tool_call.name}\" is not loaded in memory and can therefore not be executed."
                 )
 
-                ContextDataManager().add_to_context(datapoint=dp)
+                ContextManager().add_to_context(datapoint=dp)
 
                 warnings.warn(f"Attempted to call tool {tool_call.name}, but no tool with this name is loaded.")
 
             except Exception as e:
                 dp = ContextDatapoint(
-                    source=System(),
+                    source=ContextSource_System(),
                     content=f"Tool \"{tool_call.name}\" failed to execute for an unknown reason."
                 )
 
-                ContextDataManager().add_to_context(datapoint=dp)
+                ContextManager().add_to_context(datapoint=dp)
 
                 warnings.warn(f"Tool {tool_call.name} failed to execute with error: {e}")
