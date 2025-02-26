@@ -4,15 +4,14 @@ Description: This script is the API for the tools that they can use to interact 
 
 from typing import List
 
-from app.context_manager import *
-from app.context_data import *
+from app.API import *
 
-class Nova:
+class Nova(NovaAPI):
     def __init__(self) -> None:
         """
         This class provides a simple API for external tools to interact with internal logic.
         """
-        pass
+        super().__init__()
 
     def add_to_context(self, name: str, content: str, id: str) -> None:
         """
