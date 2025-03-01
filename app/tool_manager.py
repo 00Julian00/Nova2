@@ -9,10 +9,10 @@ import warnings
 import importlib.util
 import ast
 
-from tool_api import *
 from .tool_data import LLMTool, LLMToolParameter, LLMToolCall, LoadedTool
 from .context_manager import *
 from .context_data import *
+from .library_manager import *
 
 class ToolManager:
     def __init__(self) -> None:
@@ -21,13 +21,28 @@ class ToolManager:
         """
         self._loaded_tools = []
     
-    def load_tools(self) -> list[LLMTool]:
+    def load_tools(self, load_internal: bool = True, **kwargs) -> list[LLMTool]:
         """
         Loads all tools from the tools folder. Also imports all .py files in the tools folder, so that inheritance is possible (importing happens in ExternalToolManager).
 
         Returns:
             list[LLMTool]: A list of all loaded tools.
         """
+
+        if "include" in kwargs.keys() and "exclude" in kwargs.keys():
+            raise Exception("\"include\" and \"exclude\" parameter of \"load_tools\" can not be used at the same time. Use only one or none.")
+
+        tool_list = []
+        is_whitelist = False
+
+        if "include" in kwargs.keys():
+            tool_list = kwargs["include"]
+            is_whitelist = True
+        elif "exclude" in kwargs.keys():
+            tool_list = kwargs["exclude"]
+
+        internals = LibraryManager().retrieve_datapoint(library_name="internal_tools", datapoint_name="internal_tools")
+
         # Loads all the tools metadata and creates LLMTool objects from them.
         tools = []
         tools_dir = Path(__file__).parent.parent / "tools"
@@ -43,19 +58,30 @@ class ToolManager:
                     try:
                         metadata = json.load(f)
 
+                        tool_name = metadata["name"]
+
+                        # Check wether this tool should be loaded
+                        if not load_internal and tool_name in internals:
+                            continue
+
+                        if is_whitelist:
+                            if tool_name not in tool_list:
+                                continue
+                        else:
+                            if tool_name in tool_list:
+                                continue
+
                         parameters = []
                         if "parameters" in metadata:
                             for param in metadata["parameters"]:
                                 parameters.append(LLMToolParameter(**param))
 
                         tool = LLMTool(
-                                    name=metadata["name"],
+                                    name=tool_name,
                                     description=metadata["description"], 
                                     parameters=parameters
                         )
                         tools.append(tool)
-
-                        tool_name = metadata["name"]
 
                     except: # Likely wrong file format. Skip.
                         warnings.warn(f"Error accessing metadata of tool {tool_dir.name}. Skipping.")
@@ -73,7 +99,7 @@ class ToolManager:
                         classes = [getattr(module, name) for name in dir(module) if isinstance(getattr(module, name), type)]
 
                         for cls in classes:
-                            if issubclass(cls, ToolBaseClass) and cls != ToolBaseClass:
+                            if issubclass(cls, self._get_base_class()) and cls != self._get_base_class():
                                 class_instance = cls()
                                 class_instance.on_startup() # Run initialization code
 
@@ -88,6 +114,11 @@ class ToolManager:
                 self._loaded_tools.append(LoadedTool(name=tool_name, class_instance=inherited_class))
 
         return tools
+    
+    # Man I do love sketchy solutions to circular imports
+    def _get_base_class(self):
+        from tool_api import ToolBaseClass
+        return ToolBaseClass
     
     def execute_tool_call(self, tool_calls: List[LLMToolCall]) -> None:
         """

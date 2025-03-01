@@ -10,3 +10,6 @@ class Nova(NovaAPI):
         API to easily construct an AI assistant using the Nova framework.
         """
         super().__init__()
+
+    def add_to_context(self):
+        raise NotImplementedError()

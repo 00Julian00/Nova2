@@ -80,14 +80,19 @@ class NovaAPI:
         """
         self._stt.apply_config()
 
-    def load_tools(self) -> List[LLMTool]:
+    def load_tools(self, load_internal_tools: bool = True, **kwargs) -> List[LLMTool]:
         """
         Load all tools in the tool folder into memory and make them ready for calling.
+
+        Arguments:
+            load_internal_tools (bool): Wether the set of internal tools should be loaded. If set to false, the LLM loses access to some core functionality like renaming voices in the database or creating new memories.
+            include (List[string]): Which tools should be loaded. Incompatible with "exclude".
+            exclude (List[string]): Which tools should not be loaded. Incompatible with "include".
 
         Returns:
             List[LLMTool]: A list of loaded tools that can be parsed when running the LLM to give it access to these tools.
         """
-        return self._tools.load_tools()
+        return self._tools.load_tools(load_internal=load_internal_tools, **kwargs)
     
     def execute_tool_calls(self, llm_response: LLMResponse) -> None:
         """
@@ -153,6 +158,24 @@ class NovaAPI:
         Limit is 25 by default.
         """
         self._context_data.ctx_limit = ctx_limit
+
+    def add_to_context(self, name: str, content: str, id: str) -> None:
+        """
+        Add a response from the tool to the context.
+
+        Arguments:
+            name (str): The name of the tool. Should match the name given in metadata.json.
+            content (str): The message that should be added to the context
+        """
+        dp = ContextDatapoint(
+            source=ContextSource_ToolResponse(
+                name=name,
+                id=id
+            ),
+            content=content
+        )
+
+        ContextManager().add_to_context(datapoint=dp)
     
     def add_llm_response_to_context(self, response: LLMResponse) -> None:
         """
