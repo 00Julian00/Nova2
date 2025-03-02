@@ -63,6 +63,18 @@ class ContextManager:
 
         self.save_context_data()
 
+    def _overwrite_context(self, context: List[ContextDatapoint]) -> None:
+        """
+        Overwrites the entire context. Use with caution.
+
+        Arguments:
+            context (List[ContextDatapoint]): The data the context will be overwritten with.
+        """
+        ContextManager.context_data = []
+
+        for datapoint in context:
+            self.add_to_context(datapoint=datapoint)
+
     def save_context_data(self) -> None:
         """
         Saves the context data to the context.json file.
@@ -106,6 +118,31 @@ class ContextManager:
             datapoints.append(datapoint_instance)
 
         return Context(datapoints)
+    
+    def rename_voice(self, old_name: str, new_name: str) -> None:
+        """
+        Renames a voice in the context.
+
+        Arguments:
+            old_name (str): The current name of the voice.
+            new_name (str): What the voice should be renamed to.
+        """
+        context = []
+
+        for datapoint in self.get_context_data().data_points:
+            if type(datapoint.source) == ContextSource_Voice:
+                if datapoint.source.speaker == old_name:
+                    dp = ContextDatapoint(
+                        source=ContextSource_Voice(
+                            speaker=new_name,
+                        ),
+                        content=datapoint.content
+                    )
+                    context.append(dp)
+                else:
+                    context.append(datapoint)
+
+        self._overwrite_context(context=context)
 
     def _prepare_context_data(self) -> List[dict]:
         """
