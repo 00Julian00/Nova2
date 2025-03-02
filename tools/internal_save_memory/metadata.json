@@ -1,0 +1,12 @@
+{
+    "name": "Save memory",
+    "description": "Create a new memory that will be stored in the memory database. You will then have access to this memory via retrival-augumented-generation. Use this tool to memorize important information, like peoples preferences. Only save actual memories that could be important in the future.",
+    "parameters": [
+        {
+            "name": "New memory",
+            "description": "The memory you would like to store. Should be in natural language.",
+            "type": "str",
+            "required": "True"
+        }
+    ]
+}

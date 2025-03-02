@@ -95,12 +95,13 @@ class Context:
         """
         messages = []
 
+        # Thank you python that I am not allowed to use a match-case here.
         for datapoint in self.data_points:
-            if type(datapoint.source) == ContextSource_Assistant: # Assistant message does not need a timestamp
+            if type(datapoint.source) == ContextSource_Assistant:
                 messages.append(
                     Message(
                         author="assistant",
-                        content=datapoint.content
+                        content=datapoint.content # Assistant message does not need a timestamp
                 ))
             elif type(datapoint.source) == ContextSource_Voice:
                 messages.append(

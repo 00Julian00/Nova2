@@ -29,18 +29,17 @@ class ToolBaseClass:
         Returns:
             list[type]: The subclasses of the current class.
         """
-
         return cls.__subclasses__()
     
     # Custom methods for tools
-    def on_startup(self) -> None:
+    def on_startup() -> None:
         """
         This method will be called once when the system starts.
         Subscribe to events and run other initialization logic here.
         """
         pass
 
-    def on_call(self, **kwargs) -> None:
+    def on_call() -> None:
         """
         This method will be called when the tools is executed. Collect parameters and start tool logic here.
         """

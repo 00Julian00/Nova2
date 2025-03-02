@@ -1,6 +1,7 @@
 {
     "internal_tools":
     [
-        "Rename voice"
+        "Rename voice",
+        "Save memory"
     ]
 }

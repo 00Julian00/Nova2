@@ -17,6 +17,8 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from .helpers import suppress_output
+
 # Database setup
 db_secrets_folder = Path(__file__).parent.parent / "db" / "db_secrets"
 db_secrets_folder.mkdir(parents=True, exist_ok=True)
@@ -198,7 +200,8 @@ class MemoryEmbeddingDatabaseManager:
 
         if not self._embedding_model:
             with warnings.catch_warnings(action="ignore"): # Blocks a deprecation warning
-                self._embedding_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True).to("cuda")
+                with suppress_output(): # Don't show model downloads
+                    self._embedding_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True).to("cuda")
 
     def open(self):
         """
