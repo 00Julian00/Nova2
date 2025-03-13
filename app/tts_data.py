@@ -2,20 +2,14 @@
 Description: Holds all data required to run TTS inference.
 """
 
-import torch
-
 class TTSConditioning:
     def __init__(
                 self,
-                model: str = "Zyphra/Zonos-v0.1-transformer",
-                voice: str = "Laura",
-                language: str = "en-us",
-                emotion: torch.FloatTensor = None,
-                speaking_rate: int = 15,
-                expressivness: float = 100,
-                stability: float = 2,
-                similarity_boost: float = 1.0,
-                use_speaker_boost: bool = True
+                model: str,
+                voice: str,
+                expressivness: float,
+                stability: float,
+                **kwargs
                 ) -> None:
         """
         Stores all values required for TTS conditioning.
@@ -23,10 +17,6 @@ class TTSConditioning:
         """
         self.model = model
         self.voice = voice
-        self.language = language
-        self.emotion = emotion
-        self.speaking_rate = speaking_rate
         self.expressivness = expressivness
         self.stability = stability
-        self.similarity_boost = similarity_boost
-        self.use_speaker_boost = use_speaker_boost
+        self.kwargs = kwargs

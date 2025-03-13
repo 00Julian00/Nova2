@@ -75,7 +75,7 @@ def trigger_event(event_name: str, *args, **kwargs) -> None:
         try:
             callback(*args, **kwargs)
         except Exception as e:
-            print(f"Unable to call {callback} from event {event_name}. Error: {e}")
+            raise Exception(f"Unable to call {callback} from event {event_name}. Error: {e}")
 
 def event_exists(event_name: str) -> bool:
     """

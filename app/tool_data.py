@@ -45,9 +45,9 @@ class LLMTool:
         self.description = description
         self.parameters = parameters
 
-    def to_json(self) -> dict:
+    def to_dict(self) -> dict:
         """
-        Converts a list of LLMTools to the proper json format for the LLM.
+        Converts a list of LLMTools to the proper json format for the LLM and returns it as a dictionary.
         """
         properties = {}
         required_params = []

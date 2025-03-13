@@ -26,6 +26,10 @@ class ContextSource_Voice(ContextSourceBase):
                 ) -> None:
         self.speaker = speaker
 
+class ContextSource_User(ContextSourceBase):
+    def __init__(self) -> None:
+        pass
+
 class ContextSource_Assistant(ContextSourceBase):
     def __init__(self) -> None:
         pass
@@ -56,7 +60,7 @@ class ContextDatapoint:
         self.content = content
         self.timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-    def format(self) -> dict:
+    def to_dict(self) -> dict:
         """
         Returns the contents formatted to a dictionary so it can be serialized to json.
         """

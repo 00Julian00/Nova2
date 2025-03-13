@@ -11,10 +11,10 @@ class LLMConditioning:
     def __init__(
                 self,
                 model: str,
-                file: str = "",
                 temperature: float = 1.0,
                 max_completion_tokens: int = 1024,
-                add_default_sys_prompt: bool = True
+                add_default_sys_prompt: bool = True,
+                **kwargs
                 ) -> None:
         """
         Stores all values required for LLM conditioning.
@@ -27,10 +27,10 @@ class LLMConditioning:
             add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
         """
         self.model = model
-        self.file = file
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self.add_default_sys_prompt = add_default_sys_prompt
+        self.kwargs = kwargs
 
 class MemoryConfig:
     def __init__(
@@ -68,7 +68,7 @@ class LLMResponse:
         self.tool_calls = tool_calls
         self.used_tokens = used_tokens
 
-    def response_to_LLMResponse_format(self, llm_response: dict) -> None:
+    def from_dict(self, llm_response: dict) -> None:
         """
         Constructs the LLMResponse object including tool calls from the LLM response.
 
@@ -204,7 +204,7 @@ class Conversation:
             if message.author == author:
                 return message
 
-    def conversation_to_llm_format(self) -> list[dict]:
+    def to_list(self) -> list[dict]:
         """
         Convert the stored conversation to a format that can be parsed to the LLM.
 
@@ -221,7 +221,7 @@ class Conversation:
 
         return conversation
     
-    def llm_format_to_conversation(self, conversation: list[dict]) -> None:
+    def from_list(self, conversation: list[dict]) -> None:
         """
         Convert the LLM format conversation into a conversation object. Overwrites the stored conversation.
 

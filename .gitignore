@@ -18,3 +18,5 @@ app/pipeline.py
 pretrained_models/*
 
 notes.txt
+
+StyleGuide.md

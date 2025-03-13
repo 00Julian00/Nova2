@@ -10,7 +10,6 @@ from app.llm_manager import *
 from app.audio_manager import *
 from app.transcriptor import *
 from app.context_manager import *
-from app.context_manager import *
 from app.inference_engines import *
 from app.security_manager import *
 
@@ -30,9 +29,6 @@ class NovaAPI:
         self._player = AudioPlayer()
         self._tools = ToolManager()
         self._security = SecretsManager()
-
-        self._max_ctx_length = 25
-        self._append_sys_prompt = True
 
         logging.getLogger().setLevel(logging.CRITICAL)
 

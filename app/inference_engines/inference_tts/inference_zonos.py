@@ -92,7 +92,7 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
     def free(self) -> None:
         self._model = None
 
-    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> bytes:
+    def run_inference(self, text: str, conditioning: TTSConditioning) -> bytes:
         # Make sure the voice is only loaded once
         if self._voice == None:
             self._voice = self._get_voice(conditioning.voice)
@@ -102,18 +102,18 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
             cond = make_cond_dict(
                 text=text,
                 speaker=self._voice,
-                language=conditioning.language,
+                language=conditioning.kwargs["language"],
                 pitch_std=conditioning.expressivness,
-                speaking_rate=conditioning.speaking_rate
+                speaking_rate=conditioning.kwargs["speaking_rate"]
             )
         else:
             cond = make_cond_dict(
                 text=text,
                 speaker=self._voice,
-                language=conditioning.language,
-                emotion=conditioning.emotion.to(self._device),
+                language=conditioning.kwargs["language"],
+                emotion=conditioning.kwargs["emotion"].to(self._device),
                 pitch_std=conditioning.expressivness,
-                speaking_rate=conditioning.speaking_rate
+                speaking_rate=conditioning.kwargs["speaking_rate"]
             )
 
         cond = self._model.prepare_conditioning(cond, device="cuda")

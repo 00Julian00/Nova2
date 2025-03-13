@@ -56,7 +56,7 @@ class ContextManager:
         Arguments:
             datapoint (ContextDatapoint): The datapoint that will be added to the context.
         """
-        ContextManager.context_data.append(datapoint.format())
+        ContextManager.context_data.append(datapoint.to_dict())
 
         if self.ctx_limit > 0:
             ContextManager.context_data = ContextManager.context_data[-self.ctx_limit:]

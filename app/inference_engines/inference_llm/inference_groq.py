@@ -32,7 +32,7 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
         self._model = conditioning.model
 
     def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None) -> LLMResponse:
-        conversation = conversation.conversation_to_llm_format()
+        conversation = conversation.to_list()
 
         # Check if tools were parsed
         if not tools or len(tools) == 0:
@@ -45,7 +45,7 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
             tool_list = []
 
             for tool in tools:
-                tool_list.append(tool.to_json())
+                tool_list.append(tool.to_dict())
 
             # Run inference
             response = self._groq_client.chat.completions.create(
@@ -55,7 +55,7 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
             )
 
         formated_response = LLMResponse()
-        formated_response.response_to_LLMResponse_format(response)
+        formated_response.from_dict(response)
 
         return formated_response
     

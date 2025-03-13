@@ -147,13 +147,12 @@ class VoiceAnalysis:
         audio_tensor = audio_tensor.cpu()
 
         return audio_tensor.numpy()
-    
-    #TODO: Allow to set the theshold at class instance declaration
+
     def _detect_voice_activity(self, audio_chunk: torch.FloatTensor) -> bool:        
         timestamps = silero_vad.get_speech_timestamps(
             model=self._vad_model,
             audio=audio_chunk,
-            threshold=0.95,
+            threshold=self._conditioning.vad_threshold,
             sampling_rate=SAMPLE_RATE
         )
 

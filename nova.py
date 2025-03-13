@@ -11,5 +11,9 @@ class Nova(NovaAPI):
         """
         super().__init__()
 
-    def add_to_context(self):
-        raise NotImplementedError()
+    def add_to_context(self, source: ContextSourceBase, content: str):
+        dp = ContextDatapoint(
+            source=source,
+            content=content
+        )
+        ContextManager().add_to_context(datapoint=dp)

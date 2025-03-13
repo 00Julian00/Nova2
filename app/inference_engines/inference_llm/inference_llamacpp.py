@@ -32,8 +32,8 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
                 n_gpu_layers=-1,
                 n_threads=multiprocessing.cpu_count(),
                 flash_attn=True,
-                filename=conditioning.file,
-                n_ctx=1024,
+                filename=conditioning.kwargs["file"],
+                n_ctx=conditioning.kwargs["ctx_size"],
                 verbose=False
             )
 
@@ -41,7 +41,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
         self._max_tokens = conditioning.max_completion_tokens
 
     def run_inference(self, conversation: Conversation, tools: List[LLMTool] | None) -> LLMResponse:
-        conversation = conversation.conversation_to_llm_format()
+        conversation = conversation.to_list()
 
         # Check if tools were parsed
         if not tools or len(tools) == 0:
@@ -55,7 +55,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
             tool_list = []
 
             for tool in tools:
-                tool_list.append(tool.to_json())
+                tool_list.append(tool.to_dict())
 
             # Run inference
             response = self._model.create_chat_completion_openai_v1(
@@ -66,7 +66,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
             )
 
         formated_response = LLMResponse()
-        formated_response.response_to_LLMResponse_format(response)
+        formated_response.from_dict(response)
 
         return formated_response
     

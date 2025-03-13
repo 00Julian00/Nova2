@@ -37,7 +37,8 @@ class TranscriptorConditioning:
                 model: Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"] = "deepdml/faster-whisper-large-v3-turbo-ct2",
                 device: Literal["cpu", "cuda"] = "cuda",
                 voice_boost: float = 10.0,
-                language: str = None
+                language: str = None,
+                vad_threshold: float = 0.95
                 ) -> None:
         """
         Stores all values required for transcriptor conditioning.
@@ -48,9 +49,11 @@ class TranscriptorConditioning:
             device (Literal["cpu", "cuda"]): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
             voice_boost (float): How much to boost the voice in the audio preprocessing stage. Setting it to 0 disables this feature. Defaults to 10.0.
             language (str): The language to use for the transcription. Must be a valid language code. If None, the language will be autodetected. If possible, the language should be set to improve accuracy. Defaults to None.
+            vad_threshold (float): The confidence threshold of the voice-activity-detection model. Audio chunks above this threshold will be considered to contain speech.
         """
         self.microphone_index = microphone_index
         self.model = model
         self.device = device
         self.voice_boost = voice_boost
         self.language = language
+        self.vad_threshold = vad_threshold
