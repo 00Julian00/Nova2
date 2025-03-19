@@ -1,6 +1,8 @@
 # NOVA: Next-Generation Open-Source Virtual Assistant
 ### A Python framework for building AI assistants with minimal code. Integrates LLMs, Text-to-Speech, voice recognition, and long-term memory into a cohesive, easy-to-use system.
 
+Version 1.0.0
+
 ## Table of contents:
 1. [Introduction](#introduction)
 2. [Getting started](#getting-started)
@@ -128,9 +130,4 @@ Below are a couple of ideas I want to implement into Nova in future releases. Th
 If you find Nova useful for your work or projects, consider [buying me a coffee](https://buymeacoffee.com/00julian00). Your support helps maintain and improve this open-source project.
 
 ## License
-Nova is released under the GNU General Public License v3.0 (GPL-3.0). This means:
-- You are free to use, modify, and distribute this software
-- If you distribute modified versions, you must also distribute them under GPL-3.0
-- You must include the original copyright notice and license
-- There is no warranty for this software
-For more details, see the [LICENSE](LICENSE) file in this repository or visit the [GNU GPL v3.0 page](https://www.gnu.org/licenses/gpl-3.0.en.html).
+Nova is released under the [GNU General Public License v3.0 (GPL-3.0)](https://www.gnu.org/licenses/gpl-3.0.en.html).
