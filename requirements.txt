@@ -1,4 +1,5 @@
-torch==2.4.0
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch
 qdrant_client==1.12.1
 sqlalchemy==2.0.25
 groq==0.13.1
@@ -24,5 +25,4 @@ silero-vad==5.1.2
 elevenlabs==1.50.3
 cryptography==42.0.2
 pydub==0.25.1
-llama-cpp-python==0.3.4 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 openai==1.59.4

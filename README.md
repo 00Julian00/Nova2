@@ -25,6 +25,12 @@ You also need python 3.11.X.
 
 1. Clone the repo and navigate to the "Nova2" folder.
 2. Run ```pip install -r requirements.txt```
+3. LlamaCPP must be installed seperatly: ```pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124```
+
+If you are on a linux system, you are using conda and encounter an issue like this:  
+```OSError: cannot load library 'libportaudio.so.2':OSError: cannot load library 'libportaudio.so.2'```  
+Try updating libstc++:  
+```conda install -c conda-forge libstdcxx-ng```
 
 Nova is now installed and ready to be used. I recommend to take a look at the examples in ```./Nova2/examples``` as they give you an overview about how Nova works and how to use it.  
 Below is a simple script that shows you how to quickly set up a chat with an LLM using the Nova framework. Create a new script outside the Nova2 folder and copy this code:
