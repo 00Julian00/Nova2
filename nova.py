@@ -17,3 +17,6 @@ class Nova(NovaAPI):
             content=content
         )
         ContextManager().add_to_context(datapoint=dp)
+
+    def add_datapoint_to_context(self, datapoint: ContextDatapoint):
+        ContextManager().add_to_context(datapoint=datapoint)

@@ -54,6 +54,29 @@ class MemoryConfig:
         self.search_area = search_area
         self.cosine_threshold = cosine_threshold
 
+class Message:
+    def __init__(
+            self,
+            author: Literal["user", "assistant", "system", "tool"],
+            content: str,
+            name: str = "",
+            tool_call_id: str = ""
+            ) -> None:
+        """
+        Stores one message in a conversation.
+
+        Parameter "name" and "tool_call_id" are only required if "author" == "tool"
+        """
+        self._allowed_roles = ["user", "assistant", "system", "tool"]
+
+        if (author not in self._allowed_roles):
+            raise TypeError(f"Author must one one of {self._allowed_roles}.")
+
+        self.author = author
+        self.content = content
+        self.name = name
+        self.tool_call_id = tool_call_id
+
 class LLMResponse:
     def __init__(
                 self,
@@ -108,28 +131,11 @@ class LLMResponse:
 
         self.used_tokens = llm_response.usage.total_tokens
 
-class Message:
-    def __init__(
-            self,
-            author: Literal["user", "assistant", "system", "tool"],
-            content: str,
-            name: str = "",
-            tool_call_id: str = ""
-            ) -> None:
+    def to_message(self) -> Message:
         """
-        Stores one message in a conversation.
-
-        Parameter "name" and "tool_call_id" are only required if "author" == "tool"
+        Formats the LLM reponse to a Message object.
         """
-        self._allowed_roles = ["user", "assistant", "system", "tool"]
-
-        if (author not in self._allowed_roles):
-            raise TypeError(f"Author must one one of {self._allowed_roles}.")
-
-        self.author = author
-        self.content = content
-        self.name = name
-        self.tool_call_id = tool_call_id
+        return Message(author="assistant", content=self.message)
 
 class Conversation:
     def __init__(self, conversation: list[Message] = []) -> None:
@@ -157,9 +163,9 @@ class Conversation:
         """
         self._conversation += messages
 
-    def delete_last(self, author: Literal["user", "assistant", "system", None] = None) -> None:
+    def delete_newest(self, author: Literal["user", "assistant", "system", None] = None) -> None:
         """
-        Delete the last message in the conversation. If an author is parsed, the last message with that author is deleted.
+        Delete the newest message in the conversation. If an author is parsed, the newest message with that author is deleted.
 
         Arguments:
             author (Literal["user", "assistant", "system", None]): An optional parameter. The author whose newest message will be deleted.

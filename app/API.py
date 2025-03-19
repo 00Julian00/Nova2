@@ -147,6 +147,12 @@ class NovaAPI:
         """
         return self._context_data.get_context_data()
     
+    def set_context(self, context: Context) -> None:
+        """
+        Overwrites the stored context data.
+        """
+        self._context_data._overwrite_context(context.data_points)
+    
     def set_ctx_limit(self, ctx_limit: int) -> None:
         """
         Limit how many datapoints will be stored in context. This does not include memory.

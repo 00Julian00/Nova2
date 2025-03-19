@@ -102,11 +102,12 @@ class LLMManager:
                                             cosine_threshold=memory_config.cosine_threshold
                                             )
                 
-                for block in retrieved:
-                    for sent in block:
-                        results += sent
+                if retrieved:
+                    for block in retrieved:
+                        for sent in block:
+                            results += sent
 
-                results += "|"
+                    results += "|"
             
             db.close()
 

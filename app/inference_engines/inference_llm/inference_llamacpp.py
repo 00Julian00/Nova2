@@ -26,6 +26,12 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
 
     def initialize_model(self, conditioning: LLMConditioning) -> None:
         self.free()
+
+        if "ctx_size" in conditioning.kwargs:
+            ctx_size = conditioning.kwargs["ctx_size"]
+        else:
+            ctx_size = 1024
+
         with suppress_output():
             self._model = Llama.from_pretrained(
                 repo_id=conditioning.model,
@@ -33,7 +39,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
                 n_threads=multiprocessing.cpu_count(),
                 flash_attn=True,
                 filename=conditioning.kwargs["file"],
-                n_ctx=conditioning.kwargs["ctx_size"],
+                n_ctx=ctx_size,
                 verbose=False
             )
 

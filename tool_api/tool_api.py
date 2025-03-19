@@ -35,7 +35,7 @@ class ToolBaseClass:
     def on_startup(self) -> None:
         """
         This method will be called once when the system starts.
-        Subscribe to events and run other initialization logic here.
+        Run initialization logic here.
         """
         pass
 
