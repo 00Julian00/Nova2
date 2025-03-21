@@ -110,11 +110,11 @@ The transcriptor combines several AI models and frameworks into its audio-prepro
 ## Project structure
 This section is dedicated to giving you an overview about how the project is structured:  
   
-You can find almost all of the scripts in ./Nova2/app. Here, most systems are seperated into a "manager" and a "data" script. The data script holds all custom datastructures the manager needs, while the manager does the actual work. The app folder also contains the "zonos" folder, which holds all code of the Zonos TTS. app also contains the "inference_engines" folder. This is where the inference engines for LLM and TTS are located. They are in the folders "inference_llm" and "inference_tts" respectivly. These folders also contain the scripts that contain the base classes the inference engine classes inherit from.  
+You can find almost all of the scripts in ./Nova2/app. Here, most systems are separated into a "manager" and a "data" script. The data script holds all custom datastructures the manager needs, while the manager does the actual work. The app folder also contains the "zonos" folder, which holds all code of the Zonos TTS. app also contains the "inference_engines" folder. This is where the inference engines for LLM and TTS are located. They are in the folders "inference_llm" and "inference_tts" respectivly. These folders also contain the scripts that contain the base classes the inference engine classes inherit from.  
   
 In ./Nova2/data you can find the "libraries" folder that not only contains a list of which tools are considered to be "internal", but also the "prompt_library.json" file which holds all built-in prompts the system uses.  
   
-./Nova2/db holds all databases of the project, which are seperated into the "db_memory_embeddings", "db_secrets" and "db_voice_embeddings" folders.  
+./Nova2/db holds all databases of the project, which are separated into the "db_memory_embeddings", "db_secrets" and "db_voice_embeddings" folders.  
   
 ./Nova2/examples hold a bunch of Jupyter notebooks teching you the basics of how to user Nova.  
   
