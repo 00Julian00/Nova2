@@ -86,7 +86,6 @@ class LLMManager:
 
         if memory_config and memory_config.retrieve_memories:
             db = MemoryEmbeddingDatabaseManager()
-            db.open()
 
             text = conversation.get_newest("user").content
 
@@ -108,8 +107,6 @@ class LLMManager:
                             results += sent
 
                     results += "|"
-            
-            db.close()
 
             if results != "": # Don't add anything if there are no search results
                 conversation.add_message(

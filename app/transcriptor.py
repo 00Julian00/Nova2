@@ -57,7 +57,7 @@ class VoiceAnalysis:
         self._device = self._conditioning.device
         if self._conditioning.device == "cuda" and not torch.cuda.is_available():
             self._device = "cpu"
-        self._log(f"Using device '{self._device}'.")
+            
         torch.set_default_dtype(torch.float32)
 
         with helpers.suppress_output():
@@ -67,32 +67,24 @@ class VoiceAnalysis:
                 compute_type="float32",
                 cpu_threads=multiprocessing.cpu_count()
                 )
-        self._log(f"Whisper model of size '{self._conditioning.model}' loaded.")
-        # Check if the language is valid
+            
         if self._conditioning.language is not None:
             try:
                 langcodes.Language.get(self._conditioning.language)
             except:
                 raise ValueError(f"{self._conditioning.language} is not a valid language code.")
-            self._log(f"Language set to '{self._conditioning.language}'.")
-        else:
-            self._log("Language set to auto.")
+            
         self._language = self._conditioning.language
         
         if self._conditioning.voice_boost != 0.0:
             self._denoise_model = pretrained.dns64()
             self._denoise_model.eval()
             self._denoise_model = self._denoise_model.to(self._device)
-            self._log("Denoiser model loaded.")
-        else:
-            self._log("voice_boost is set to 0, skipping denoiser model loading.")
         
         self._vad_model = silero_vad.load_silero_vad()
-        self._log("VAD model loaded.")
 
         with helpers.suppress_output():
             self._speaker_embedding_model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb", run_opts={"device": self._device})
-        self._log("Speaker embedding model loaded.")
 
         self._microphone_index = self._conditioning.microphone_index
         self._max_silence_chunks = 3
@@ -103,8 +95,6 @@ class VoiceAnalysis:
         self._voice_boost = self._conditioning.voice_boost
         self._speculative = False
         self._recording_thread = threading.Thread(target=self._record_audio)
-
-        self._log("Initialization complete.\n")
 
     def _record_audio(self) -> None:
         audio_buffer = np.array([], dtype=np.float32)  
@@ -200,7 +190,6 @@ class VoiceAnalysis:
         try:
             return self._speaker_embedding_model.encode_batch(audio_data)
         except RuntimeError as e:
-            self._log(f"Error generating speaker embedding: {str(e)}")
             return torch.zeros(1, 512, device=self._device)  # Return a zero embedding as a fallback
 
     
@@ -292,16 +281,12 @@ class VoiceAnalysis:
 
         avg_embedding = VoiceProcessingHelpers.take_average_embedding(embedding_list)
 
-        self._voice_database_manager.open()
-
         voice = self._voice_database_manager.get_voice_name_from_embedding(avg_embedding)
 
-        if voice and voice[1] > 0.8: # If voice was found and it's close enough use it. Otherwise create a new one
+        if voice and voice[1] > self._conditioning.voice_similarity_threshold: # If voice was found and it's close enough use it. Otherwise create a new one
             voice_name = voice[0]
         else:
             voice_name = self._voice_database_manager.create_unknown_voice(avg_embedding)
-
-        self._voice_database_manager.close()
 
         return voice_name
         

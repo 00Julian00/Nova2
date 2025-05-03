@@ -10,7 +10,6 @@ import json
 import torch
 
 from .context_data import *
-from .database_manager import VoiceDatabaseManager
 from .transcriptor_data import Word
 
 class ContextManager:
@@ -20,8 +19,6 @@ class ContextManager:
         """
         Prepares context data provided by a listener and stores them in the context file.
         """
-        self._voice_database_manager = VoiceDatabaseManager()
-
         self._context_file = Path(__file__).parent.parent / "data" / "context.json"
         ContextManager.context_data = self._prepare_context_data()
 

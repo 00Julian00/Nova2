@@ -5,15 +5,15 @@ Description: Acts as the base API for the main API and the tool API.
 from pathlib import Path
 import logging
 
-from app.tts_manager import *
-from app.llm_manager import *
-from app.audio_manager import *
-from app.transcriptor import *
-from app.context_manager import *
-from app.inference_engines import *
-from app.security_manager import *
+from .tts_manager import *
+from .llm_manager import *
+from .audio_manager import *
+from .transcriptor import *
+from .context_manager import *
+from .inference_engines import *
+from .security_manager import *
 
-from app.inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
+from .inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
 
 class NovaAPI:
     def __init__(self) -> None:
@@ -161,23 +161,15 @@ class NovaAPI:
         """
         self._context_data.ctx_limit = ctx_limit
 
-    def add_to_context(self, name: str, content: str, id: str) -> None:
-        """
-        Add a response from the tool to the context.
-
-        Arguments:
-            name (str): The name of the tool. Should match the name given in metadata.json.
-            content (str): The message that should be added to the context
-        """
+    def add_to_context(self, source: ContextSourceBase, content: str):
         dp = ContextDatapoint(
-            source=ContextSource_ToolResponse(
-                name=name,
-                id=id
-            ),
+            source=source,
             content=content
         )
-
         ContextManager().add_to_context(datapoint=dp)
+
+    def add_datapoint_to_context(self, datapoint: ContextDatapoint):
+        ContextManager().add_to_context(datapoint=datapoint)
     
     def add_llm_response_to_context(self, response: LLMResponse) -> None:
         """
