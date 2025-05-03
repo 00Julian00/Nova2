@@ -27,14 +27,19 @@ db_secrets_engine = create_engine(f"sqlite:///{db_secrets_location}", echo=False
 
 base = declarative_base()
 
-def _is_connection_open(func: callable):
+text_embedding_model = None
+
+def _with_open_connection(func: callable):
     """
-    Prevent access to the database on a closed connection, because concurrent access is not allowed.
+    Replaces manual open and closing for database access.
     """
     def wrapper(self, *args, **kwargs):
         if not self._qdrant_client:
-            raise Exception("The connection must be opened first before interacting with the database.")
-        return func(self, *args, **kwargs)
+            self._prepare_database()
+        try:
+            return func(self, *args, **kwargs)
+        finally:
+            self._qdrant_client = None
     return wrapper
 
 # RAG hat Swag. LG an Valentin Weyer.
@@ -45,9 +50,8 @@ class MemoryEmbeddingDatabaseManager:
         It also provides a semantic search system used for retrieval augumented generation.
         """
         self._qdrant_client = None
-        self._embedding_model = None
 
-    @_is_connection_open
+    @_with_open_connection
     def create_new_entry(self, text: str) -> None:
         """
         Write new entry to the database. The input is chunked into sentences and each sentence is converted into
@@ -61,7 +65,7 @@ class MemoryEmbeddingDatabaseManager:
         for text in split_text:
             self._save_embedding_to_db(text)
 
-    @_is_connection_open
+    @_with_open_connection
     def _save_embedding_to_db(self, text: str) -> None:
         embedding = self._compute_embedding(text)
 
@@ -83,7 +87,7 @@ class MemoryEmbeddingDatabaseManager:
             ]
         )
 
-    @_is_connection_open
+    @_with_open_connection
     def search_semantic(
             self,
             text: str,
@@ -186,7 +190,7 @@ class MemoryEmbeddingDatabaseManager:
         Returns:
             torch.FloatTensor: The computed embedding.
         """
-        embedding = self._embedding_model.encode(text, task="text-matching")
+        embedding = text_embedding_model.encode(text, task="text-matching")
 
         return torch.from_numpy(embedding).squeeze()
 
@@ -195,36 +199,16 @@ class MemoryEmbeddingDatabaseManager:
 
         self._qdrant_client = QdrantClient(path=db_location)
 
+        if not text_embedding_model:
+            with warnings.catch_warnings(action="ignore"): # Blocks a deprecation warning
+                with suppress_output(): # Don't show model downloads
+                    text_embedding_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True).to("cuda")
+
         if not self._qdrant_client.collection_exists("memory_embeddings"):
             self._qdrant_client.create_collection(collection_name="memory_embeddings", vectors_config=VectorParams(size=1024, distance=Distance.COSINE))
 
-        if not self._embedding_model:
-            with warnings.catch_warnings(action="ignore"): # Blocks a deprecation warning
-                with suppress_output(): # Don't show model downloads
-                    self._embedding_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True).to("cuda")
-
-    def open(self):
-        """
-        Open the connection to the database. The database can not be accessed before a connection has been opened.
-        """
-        if self._qdrant_client:
-            raise Exception("A previous connection was not closed. Concurrent access is not allowed.")
-
-        try:
-            self._prepare_database()
-        except:
-            raise Exception("Database could not be accessed. You need to close a previous connection before openening a new one. Concurrent access is not allowed.")
-
-    @_is_connection_open
-    def close(self):
-        """
-        Close the connection to the database. Concurrent access is not allowed, so a connection must be closed before a new one can be opened.
-        """
-        self._qdrant_client = None
-
     def _torch_tensor_to_float_list(self, embedding: torch.FloatTensor) -> List[float]:
         return embedding.squeeze().cpu().numpy().tolist()
-
 
 class VoiceDatabaseManager:
     def __init__(self) -> None:
@@ -235,7 +219,7 @@ class VoiceDatabaseManager:
         self._prepare_database()
         self._qdrant_client = None
     
-    @_is_connection_open
+    @_with_open_connection
     def create_voice(self, embedding: torch.FloatTensor, name: str) -> None:
         """
         Creates a new entry in the database.
@@ -255,7 +239,7 @@ class VoiceDatabaseManager:
             ]
         )
 
-    @_is_connection_open
+    @_with_open_connection
     def create_unknown_voice(self, embedding: torch.FloatTensor) -> str:
         """
         Creates a new voice with the name "UnknownVoiceX", where X is a number starting from 0. These can later be replaced with the correct name, after the system has obtained the name.
@@ -271,7 +255,7 @@ class VoiceDatabaseManager:
 
         return f"UnknownVoice{unknown_counter}"
 
-    @_is_connection_open
+    @_with_open_connection
     def get_voice_name_from_embedding(self, embedding: torch.FloatTensor) -> Tuple[str, float] | None:
         """
         Searches for the closest voice embedding to the given embedding.
@@ -294,7 +278,7 @@ class VoiceDatabaseManager:
         else:
             return None
     
-    @_is_connection_open
+    @_with_open_connection
     def does_voice_exist(self, name: str) -> bool:
         """
         Checks if a voice embedding with the given name exists in the database.
@@ -322,7 +306,7 @@ class VoiceDatabaseManager:
 
         return len(search_result[0]) > 0
 
-    @_is_connection_open
+    @_with_open_connection
     def get_voice_id(self, embedding: torch.FloatTensor) -> int | None:
         """
         Searches for the ID of a voice embedding in the database.
@@ -344,7 +328,7 @@ class VoiceDatabaseManager:
         else:
             return None
 
-    @_is_connection_open
+    @_with_open_connection
     def edit_voice_name(self, old_name: str, new_name: str) -> bool:
         """
         Edit the name of a voice in the database.
@@ -391,25 +375,6 @@ class VoiceDatabaseManager:
 
         if not self._qdrant_client.collection_exists("voice_embeddings"):
             self._qdrant_client.create_collection(collection_name="voice_embeddings", vectors_config=VectorParams(size=512, distance=Distance.COSINE))
-
-    def open(self):
-        """
-        Open the connection to the database. The database can not be accessed before a connection has been opened.
-        """
-        if self._qdrant_client:
-            raise Exception("A previous connection was not closed. Concurrent access is not allowed.")
-
-        try:
-            self._prepare_database()
-        except:
-            raise Exception("Database could not be accessed. You need to close a previous connection before openening a new one. Concurrent access is not allowed.")
-
-    @_is_connection_open
-    def close(self):
-        """
-        Close the connection to the database. Concurrent access is not allowed, so a connection must be closed before a new one can be opened.
-        """
-        self._qdrant_client = None
 
     def _torch_tensor_to_float_list(self, embedding: torch.FloatTensor) -> List[float]:
         return embedding.squeeze().cpu().numpy().tolist()

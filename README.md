@@ -1,7 +1,7 @@
 # NOVA: Next-Generation Open-Source Virtual Assistant
 ### A Python framework for building AI assistants with minimal code. Integrates LLMs, Text-to-Speech, voice recognition, and long-term memory into a cohesive, easy-to-use system.
 
-Version 1.0.0
+Version 1.0.1 [Changelog](CHANGELOG.md)
 
 ## Table of contents:
 1. [Introduction](#introduction)
@@ -131,6 +131,10 @@ Below are a couple of ideas I want to implement into Nova in future releases. Th
 - Add a "voice lock" functionality where certain data can only be accessed if a whitelisted voice is speaking.
 - Add support for thinking models.
 - Add more inference engines and internal tools.
+
+## Testing
+Current code coverage: 9%
+Tests are performed using the `unittest` and `coverage` libraries.
 
 ## Support the Project
 If you find Nova useful for your work or projects, consider [buying me a coffee](https://buymeacoffee.com/00julian00). Your support helps maintain and improve this open-source project.

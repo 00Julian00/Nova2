@@ -8,58 +8,42 @@ from queue import Queue
 from enum import Enum
 from threading import Thread
 import time
+from dataclasses import dataclass
 
 from .llm_data import Conversation, Message
 
 class ContextSourceBase:
-    def __init__(self):
-        pass
-    
     @classmethod
     def get_all_sources(cls) -> List[type]:
         return cls.__subclasses__()
 
+@dataclass
 class ContextSource_Voice(ContextSourceBase):
-    def __init__(
-                self,
-                speaker: str
-                ) -> None:
-        self.speaker = speaker
+    speaker: str
 
 class ContextSource_User(ContextSourceBase):
-    def __init__(self) -> None:
-        pass
+    pass
 
 class ContextSource_Assistant(ContextSourceBase):
-    def __init__(self) -> None:
-        pass
+    pass
 
+@dataclass
 class ContextSource_ToolResponse(ContextSourceBase):
-    def __init__(
-                self,
-                name: str,
-                id: str
-                ) -> None:
-        self.name = name
-        self.id = id
+    name: str
+    id: str
 
 class ContextSource_System(ContextSourceBase):
-    def __init__(self) -> None:
-        pass
+    pass
 
+@dataclass
 class ContextDatapoint:
-    def __init__(
-                self,
-                source: ContextSourceBase,
-                content: str,
-                ) -> None:
-        """
-        This class holds a singular datapoint in the context.
-        """
-        self.source = source
-        self.content = content
-        self.timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-
+    """
+    This class holds a singular datapoint in the context.
+    """
+    source: ContextSourceBase
+    content: str
+    timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    
     def to_dict(self) -> dict:
         """
         Returns the contents formatted to a dictionary so it can be serialized to json.
@@ -83,15 +67,12 @@ class ContextDatapoint:
                 "timestamp": self.timestamp
             }
 
+@dataclass
 class Context:
-    def __init__(
-                self,
-                data_points: list[ContextDatapoint]
-                ) -> None:
-        """
-        This class stores context which is a list of datapoints all with source, content and timestamp.
-        """
-        self.data_points = data_points
+    """
+    This class stores context which is a list of datapoints all with source, content and timestamp.
+    """
+    data_points: list[ContextDatapoint]
 
     def to_conversation(self) -> Conversation:
         """
@@ -112,6 +93,12 @@ class Context:
                     Message(
                         author="user",
                         content=f"{datapoint.source.speaker} ({datapoint.timestamp}): {datapoint.content}"
+                ))
+            elif type(datapoint.source) == ContextSource_User:
+                messages.append(
+                    Message(
+                        author="user",
+                        content=f"({datapoint.timestamp}) {datapoint.content}"
                 ))
             elif type(datapoint.source) == ContextSource_ToolResponse:
                 messages.append(
@@ -134,15 +121,12 @@ class Context:
 
         return Conversation(messages)
 
+@dataclass
 class ContextGenerator:
-    def __init__(
-                self,
-                generator: Generator
-                ) -> None:
-        """
-        Holds the data generator produced by a context generator. Yields ContextDatapoint.
-        """
-        self._generator = generator
+    """
+    Holds the data generator produced by a context generator. Yields ContextDatapoint.
+    """
+    _generator: Generator
 
     def data(self):
         """
