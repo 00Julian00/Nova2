@@ -8,5 +8,5 @@
 - Added testing script
 - You can now set the voice similarity threshold for speaker detection in the transcriptor conditioning object
 
-### Bug fixes
+#### Bug fixes
 - nova.py can now be imported from outside the Nova2 folder
