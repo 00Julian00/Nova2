@@ -25,7 +25,7 @@ import silero_vad
 
 from .transcriptor_data import Word, TranscriptorConditioning
 from .database_manager import VoiceDatabaseManager
-from .context_data import *
+from .context_data import ContextDatapoint, ContextSource_Voice
 
 SAMPLE_RATE = 16000
 

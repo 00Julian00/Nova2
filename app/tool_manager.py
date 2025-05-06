@@ -10,11 +10,12 @@ import importlib.util
 import ast
 
 from .tool_data import LLMTool, LLMToolParameter, LLMToolCall, LoadedTool
-from .context_manager import *
-from .context_data import *
-from .library_manager import *
+from .context_manager import ContextManager
+from .context_data import ContextDatapoint, ContextSource_System
+from .library_manager import LibraryManager
+from .helpers import Singleton
 
-class ToolManager:
+class ToolManager(Singleton):
     def __init__(self) -> None:
         """
         This class manages the internal and external tools, as well as their execution.
