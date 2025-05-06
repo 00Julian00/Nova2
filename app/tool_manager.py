@@ -13,6 +13,8 @@ from .tool_data import LLMTool, LLMToolParameter, LLMToolCall, LoadedTool
 from .context_manager import *
 from .context_data import *
 from .library_manager import *
+from .api_tools import NovaAPI
+from ..tool_api.tool_api import ToolBaseClass
 
 class ToolManager:
     def __init__(self) -> None:
@@ -20,6 +22,7 @@ class ToolManager:
         This class manages the internal and external tools, as well as their execution.
         """
         self._loaded_tools = []
+        self._tool_api_instance = NovaAPI()
     
     def load_tools(self, load_internal: bool = True, **kwargs) -> list[LLMTool]:
         """
@@ -99,26 +102,25 @@ class ToolManager:
                         classes = [getattr(module, name) for name in dir(module) if isinstance(getattr(module, name), type)]
 
                         for cls in classes:
-                            if issubclass(cls, self._get_base_class()) and cls != self._get_base_class():
+                            if issubclass(cls, ToolBaseClass) and cls != ToolBaseClass:
                                 class_instance = cls()
+
+                                # Inject the API into the tool
+                                class_instance.api = self._tool_api_instance
+
                                 class_instance.on_startup() # Run initialization code
 
                                 if inherited_class != None:
                                     raise Exception(f"More then one class found that inherits from ToolBaseClass in tool {tool_name}. Only one class can inherit from ToolBaseClass.")
 
                                 inherited_class = class_instance
-                except:
-                    warnings.warn(f"Failed to load script {script} into memory.")
+                except Exception as e:
+                    warnings.warn(f"Failed to load script {script} into memory: {e}")
 
             if tool_name != "":
                 self._loaded_tools.append(LoadedTool(name=tool_name, class_instance=inherited_class))
 
         return tools
-    
-    # Man I do love sketchy solutions to circular imports
-    def _get_base_class(self):
-        from tool_api import ToolBaseClass
-        return ToolBaseClass
     
     def execute_tool_call(self, tool_calls: List[LLMToolCall]) -> None:
         """

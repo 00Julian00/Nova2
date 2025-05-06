@@ -1,12 +1,9 @@
-from tool_api import ToolBaseClass, Nova
-
-from app import database_manager
+from Nova2 import ToolBaseClass
 
 class Main(ToolBaseClass):
     def on_startup(self):
-        self._db = database_manager.MemoryEmbeddingDatabaseManager()
-
-        self._api = Nova()
+        #self._db = database_manager.MemoryEmbeddingDatabaseManager()
+        pass
 
     def on_call(self, **kwargs):
         memory = kwargs["New memory"]

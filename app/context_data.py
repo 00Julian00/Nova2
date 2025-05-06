@@ -11,36 +11,43 @@ import time
 from dataclasses import dataclass
 
 from .llm_data import Conversation, Message
+from .shared_types import (
+    ContextSourceBase,
+    ContextDatapointBase,
+    ContextBase,
+    ContextGeneratorBase,
+    ContextGeneratorListBase
+)
 
-class ContextSourceBase:
+class ContextSource(ContextSourceBase):
     @classmethod
     def get_all_sources(cls) -> List[type]:
         return cls.__subclasses__()
 
 @dataclass
-class ContextSource_Voice(ContextSourceBase):
+class ContextSource_Voice(ContextSource):
     speaker: str
 
-class ContextSource_User(ContextSourceBase):
+class ContextSource_User(ContextSource):
     pass
 
-class ContextSource_Assistant(ContextSourceBase):
+class ContextSource_Assistant(ContextSource):
     pass
 
 @dataclass
-class ContextSource_ToolResponse(ContextSourceBase):
+class ContextSource_ToolResponse(ContextSource):
     name: str
     id: str
 
-class ContextSource_System(ContextSourceBase):
+class ContextSource_System(ContextSource):
     pass
 
 @dataclass
-class ContextDatapoint:
+class ContextDatapoint(ContextDatapointBase):
     """
     This class holds a singular datapoint in the context.
     """
-    source: ContextSourceBase
+    source: ContextSource
     content: str
     timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     
@@ -68,7 +75,7 @@ class ContextDatapoint:
             }
 
 @dataclass
-class Context:
+class Context(ContextBase):
     """
     This class stores context which is a list of datapoints all with source, content and timestamp.
     """
@@ -122,7 +129,7 @@ class Context:
         return Conversation(messages)
 
 @dataclass
-class ContextGenerator:
+class ContextGenerator(ContextGeneratorBase):
     """
     Holds the data generator produced by a context generator. Yields ContextDatapoint.
     """
@@ -135,7 +142,7 @@ class ContextGenerator:
         for datapoint in self._generator:
             yield datapoint
 
-class ContextGeneratorList:
+class ContextGeneratorList(ContextGeneratorListBase):
     def __init__(self) -> None:
         """
         Manages a dynamic thread-safe list of context sources that can be itterated through.

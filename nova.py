@@ -2,7 +2,7 @@
 Description: Acts as the API for the entire Nova system.
 """
 
-from .app.API import *
+from .app.api_main import *
 
 class Nova(NovaAPI):
     def __init__(self) -> None:

@@ -4,34 +4,7 @@ Description: This script is the API for the tools that they can use to interact 
 
 from typing import List
 
-from app.API import NovaAPI
-from app.context_data import ContextDatapoint, ContextSource_ToolResponse
-from app.context_manager import ContextManager
-
-class Nova(NovaAPI):
-    def __init__(self) -> None:
-        """
-        This class provides a simple API for external tools to interact with internal logic.
-        """
-        super().__init__()
-
-    def add_to_context(self, name: str, content: str, id: str) -> None:
-        """
-        Add a response from the tool to the context.
-
-        Arguments:
-            name (str): The name of the tool. Should match the name given in metadata.json.
-            content (str): The message that should be added to the context
-        """
-        dp = ContextDatapoint(
-            source=ContextSource_ToolResponse(
-                name=name,
-                id=id
-            ),
-            content=content
-        )
-
-        ContextManager().add_to_context(datapoint=dp)
+from ..app.api_base import APIAbstract
 
 # Used to run methods inside tools in the "tools" folder via inheritance.
 class ToolBaseClass:
@@ -40,6 +13,13 @@ class ToolBaseClass:
     """
     def __init__(self) -> None:
         self._tool_call_id = None
+        self.api: APIAbstract = None
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if '__init__' in cls.__dict__:
+            print(f"WARNING: {cls.__name__} overrides __init__, which may break Base behavior. Use 'on_startup' instead to run initialization logic.")
+
 
     @classmethod
     def get_subclasses(cls) -> List[type]:

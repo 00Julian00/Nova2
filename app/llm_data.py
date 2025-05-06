@@ -7,8 +7,15 @@ import json
 from dataclasses import dataclass, field
 
 from .tool_data import LLMToolCall, LLMToolCallParameter
+from .shared_types import (
+    LLMConditioningBase,
+    MemoryConfigBase,
+    MessageBase,
+    LLMResponseBase,
+    ConversationBase
+)
 
-class LLMConditioning:
+class LLMConditioning(LLMConditioningBase):
     def __init__(
                 self,
                 model: str,
@@ -17,16 +24,6 @@ class LLMConditioning:
                 add_default_sys_prompt: bool = True,
                 **kwargs
                 ) -> None:
-        """
-        Stores all values required for LLM conditioning.
-
-        Arguments:
-            model (str): The model name. Must a valid huggingface repo ID.
-            file (str): The file to use from that repo. Must be GGUF format.
-            temperature (float): The temperature to use for inference.
-            max_completion_tokens (int): How many tokens the model is allowed to generate.
-            add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
-        """
         self.model = model
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
@@ -34,31 +31,19 @@ class LLMConditioning:
         self.kwargs = kwargs
 
 @dataclass
-class MemoryConfig:
-    """
-    Stores the settings that determines how memories are retrieved.
-
-    Arguments:
-        retrieve_memories (bool): Whether to search for memories in the database.
-        num_results (int): The maximum amount of results that should be fed to the model.
-        search_area (int): How much context around the search result should additionally be fed to the model.
-        cosine_threshold (float): The similarity threshold a result must surpass to be utilized.
-    """
+class MemoryConfig(MemoryConfigBase):
     retrieve_memories: bool = True
     num_results: int = 2
     search_area: int = 2
     cosine_threshold: float = 0.6
 
-class Message:
+class Message(MessageBase):
     def __init__(
             self,
             author: Literal["user", "assistant", "system", "tool"],
             content: str,
             **kwargs
             ) -> None:
-        """
-        Stores one message in a conversation.
-        """
         self._allowed_roles = ["user", "assistant", "system", "tool"]
 
         if (author not in self._allowed_roles):
@@ -77,21 +62,12 @@ class Message:
             self.tool_call_id = kwargs["tool_call_id"]
 
 @dataclass
-class LLMResponse:
-    """
-    Stores necessary LLM response information.
-    """
+class LLMResponse(LLMResponseBase):
     message: str = ""
-    tool_calls: List["LLMToolCall"] = field(default_factory=list)
+    tool_calls: List[LLMToolCall] = field(default_factory=list)
     used_tokens: int = 0
 
     def from_dict(self, llm_response: dict) -> None:
-        """
-        Constructs the LLMResponse object including tool calls from the LLM response.
-
-        Arguments:
-            llm_response (dict): The response from the LLM that will be converted.
-        """
         if "error" in llm_response:
             raise RuntimeError(llm_response["error"]["message"])
             
@@ -126,19 +102,13 @@ class LLMResponse:
         self.used_tokens = llm_response.usage.total_tokens
 
     def to_message(self) -> Message:
-        """
-        Formats the LLM reponse to a Message object.
-        """
         return Message(author="assistant", content=self.message)
 
-class Conversation:
+class Conversation(ConversationBase):
     def __init__(
             self,
             conversation: list[Message] = []
             ) -> None:
-        """
-        Stores the conversation between the LLM and the user.
-        """
         self._conversation = conversation
         self._allowed_roles = ["user", "assistant", "system"]
 
@@ -146,34 +116,16 @@ class Conversation:
             self,
             message: Message
             ) -> None:
-        """
-        Add one message to the conversation.
-
-        Arguments:
-            message (Message): The message that will be added.
-        """
         self._conversation.append(message)
 
     def add_messages(self,
             messages: list[Message]
             ) -> None:
-        """
-        Add multiple messages to the conversation.
-
-        Arguments:
-            messages (list[Message]): The messages that will be added.
-        """
         self._conversation += messages
 
     def delete_newest(self,
             author: Literal["user", "assistant", "system", None] = None
             ) -> None:
-        """
-        Delete the newest message in the conversation. If an author is parsed, the newest message with that author is deleted.
-
-        Arguments:
-            author (Literal["user", "assistant", "system", None]): An optional parameter. The author whose newest message will be deleted.
-        """
         if author == None:
             del self._conversation[-1]
         else:
@@ -186,12 +138,6 @@ class Conversation:
     def delete_all_from(self,
             author: Literal["user", "assistant", "system"]
             ) -> None:
-        """
-        Delete all messages from an author. Can be used to purge system prompts if behaviour should be overwritten.
-
-        Arguments:
-            author (Literal["user", "assistant", "system"]): The author from whom all messages should be deleted.
-        """
         for i, message in enumerate(reversed(self._conversation)):
             if message.author == author:
                 del self._conversation[i]
@@ -199,15 +145,6 @@ class Conversation:
     def get_newest(self,
             author: Literal["user", "assistant", "system", None] = None
             ) -> Message | None:
-        """
-        Get the newest message. If an author is parsed, the newest message of that author will be returned.
-
-        Arguments:
-            author (Literal["user", "assistant", "system", None]): An optional parameter. The author whose newest message will be returned.
-
-        Returns:
-            Message | None: The newest message (from the author). None if there are no messages in the conversation or no messages from the specified author.
-        """
         if len(self._conversation) == 0:
             return None
         
@@ -219,12 +156,6 @@ class Conversation:
                 return message
 
     def to_list(self) -> list[dict]:
-        """
-        Convert the stored conversation to a format that can be parsed to the LLM.
-
-        Returns:
-            list[dict]: The formatted conversation.
-        """
         conversation = []
 
         for message in self._conversation:
@@ -238,12 +169,6 @@ class Conversation:
     def from_list(self,
             conversation: list[dict]
             ) -> None:
-        """
-        Convert the LLM format conversation into a conversation object. Overwrites the stored conversation.
-
-        Arguments:
-            converation (list[dict]): The conversation that should be converted and stored.
-        """
         self._conversation = []
 
         for message in conversation:

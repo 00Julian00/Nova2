@@ -1,13 +1,11 @@
-from tool_api import ToolBaseClass, Nova
-
-from app import database_manager, context_manager
+from Nova2 import ToolBaseClass
 
 class Main(ToolBaseClass):
     def on_startup(self):
-        self._db = database_manager.VoiceDatabaseManager()
+        #self._db = database_manager.VoiceDatabaseManager()
 
-        self._api = Nova()
-        self._context = context_manager.ContextManager()
+        #self._context = context_manager.ContextManager()
+        pass
 
     def on_call(self, **kwargs):
         current_name = kwargs["Current voice name"]

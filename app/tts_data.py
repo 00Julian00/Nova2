@@ -2,7 +2,11 @@
 Description: Holds all data required to run TTS inference.
 """
 
-class TTSConditioning:
+from .shared_types import (
+    TTSConditioningBase
+)
+
+class TTSConditioning(TTSConditioningBase):
     def __init__(
                 self,
                 model: str,
@@ -11,10 +15,6 @@ class TTSConditioning:
                 stability: float,
                 **kwargs
                 ) -> None:
-        """
-        Stores all values required for TTS conditioning.
-        Note that some parameters are inference engine exclusive and will be ignored if an incompatibe engine is used.
-        """
         self.model = model
         self.voice = voice
         self.expressivness = expressivness
