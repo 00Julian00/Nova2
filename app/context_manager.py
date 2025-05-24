@@ -10,7 +10,7 @@ import atexit
 
 import torch
 
-from Nova2.app.context_data import ContextDatapoint, ContextSourceBase, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
+from Nova2.app.context_data import ContextDatapoint, ContextSource, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
 from Nova2.app.transcriptor_data import Word
 from Nova2.app.helpers import Singleton
 
@@ -109,7 +109,7 @@ class ContextManager(Singleton):
         Returns:
             Context: The context data stored in memory.
         """
-        sources = ContextSourceBase.get_all_sources()
+        sources = ContextSource.get_all_sources()
 
         datapoints = []
 

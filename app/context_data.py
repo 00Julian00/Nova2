@@ -156,10 +156,10 @@ class ContextGeneratorList(ContextGeneratorListBase):
         self._worker_thread = Thread(target=self._worker, daemon=True)
         self._worker_thread.start()
 
-    def add(self, context_source: ContextGenerator) -> None:
+    def add(self, context_source: ContextGeneratorBase) -> None:
         self._command_queue.put((ListCommands.ADD, context_source))
 
-    def remove(self, context_source: ContextGenerator) -> None:
+    def remove(self, context_source: ContextGeneratorBase) -> None:
         self._command_queue.put((ListCommands.REMOVE, context_source))
 
     def get_next(self) -> ContextDatapoint:

@@ -3,13 +3,13 @@ import io
 
 import wave
 
-from .shared_types import AudioDataBase
+from Nova2.app.shared_types import AudioDataBase
 
 class AudioData(AudioDataBase):
     def __init__(self) -> None:
         self._audio_data = None
 
-    def _store_audio(self, data: list[bytes]) -> None:
+    def store_audio(self, data: list[bytes]) -> None:
         data_full = b''.join(data)
 
         self._audio_data = self._process_audio(data_full)

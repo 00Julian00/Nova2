@@ -69,6 +69,6 @@ class TTSManager:
         
         data = AudioData()
 
-        data._store_audio(data_chunks)
+        data.store_audio(data_chunks)
 
         return data

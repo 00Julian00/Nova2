@@ -119,34 +119,25 @@ class Conversation(ConversationBase):
         self._conversation = conversation
         self._allowed_roles = ["user", "assistant", "system"]
 
-    def add_message(
-            self,
-            message: Message
-            ) -> None:
-        self._conversation.append(message)
+    def add_message(self, message: MessageBase) -> None:
+        self._conversation.append(message) # type: ignore
 
-    def add_messages(self,
-            messages: list[Message]
-            ) -> None:
+    def add_messages(self, messages: list[MessageBase]) -> None:
         self._conversation += messages
 
-    def delete_newest(self,
-            author: Literal["user", "assistant", "system", None] = None
-            ) -> None:
+    def delete_newest(self, author: Literal["user", "assistant", "system", None] = None) -> None:
         if author == None:
             del self._conversation[-1]
         else:
             #Itterate through the list from the back and find the first one with a matching author
             for i, message in enumerate(reversed(self._conversation)):
-                if message.author == author:
+                if message.author == author: # type: ignore
                     del self._conversation[i]
                     break
 
-    def delete_all_from(self,
-            author: Literal["user", "assistant", "system"]
-            ) -> None:
+    def delete_all_from(self, author: Literal["user", "assistant", "system"]) -> None:
         for i, message in enumerate(reversed(self._conversation)):
-            if message.author == author:
+            if message.author == author: # type: ignore
                 del self._conversation[i]
 
     def get_newest(self, author: Literal["user", "assistant", "system", None] = None) -> Message | None:
@@ -163,20 +154,21 @@ class Conversation(ConversationBase):
             return None
         
         if not author:
-            return self._conversation[-1]
+            msg = self._conversation[-1]
+            return self._conversation[-1] # type: ignore
         
         for i, message in enumerate(reversed(self._conversation)):
-            if message.author == author:
-                return message
-
+            if message.author == author: # type: ignore
+                return message # type: ignore
+ 
     def to_list(self) -> list[dict]:
         conversation = []
 
         for message in self._conversation:
-            if message.author == "tool":
-                conversation.append({"role": "tool", "name": message.name, "content": message.content, "tool_call_id": message.tool_call_id})
+            if message.author == "tool": # type: ignore
+                conversation.append({"role": "tool", "name": message.name, "content": message.content, "tool_call_id": message.tool_call_id}) # type: ignore
             else:
-                conversation.append({"role": message.author, "content": message.content})
+                conversation.append({"role": message.author, "content": message.content}) # type: ignore
 
         return conversation
     

@@ -6,7 +6,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import List
 
-from .shared_types import (
+from Nova2.app.shared_types import (
     TranscriptorConditioningBase,
     InferenceEngineLLMBase,
     InferenceEngineTTSBase,
@@ -73,7 +73,7 @@ class APIAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def run_llm(self, conversation: ConversationBase, memory_config: MemoryConfigBase = None, tools: List[LLMToolBase] = None, instruction: str = "") -> LLMResponseBase:
+    def run_llm(self, conversation: ConversationBase, memory_config: MemoryConfigBase = None, tools: List[LLMToolBase] = None, instruction: str = "") -> LLMResponseBase: # type: ignore
         """
         Run inference on the LLM.
 

@@ -22,6 +22,7 @@ class ToolManager(Singleton):
         This class manages the internal and external tools, as well as their execution.
         """
         self._loaded_tools: list[LLMTool] = []
+        self._tool_api_instance = NovaAPI()
     
     def load_tools(self, load_internal: bool = True, **kwargs) -> list[LLMTool]:
         """
@@ -87,7 +88,7 @@ class ToolManager(Singleton):
                 continue
 
             # Load the scripts into memory and run on_startup() as well as saving the class
-            inherited_class = None # The class that inherits from ToolBaseClass
+            inherited_class: ToolBaseClass = None # type: ignore
             for script in tool_dir.glob("*.py"):
                 try:
                     spec = importlib.util.spec_from_file_location(script.stem, script)
@@ -102,15 +103,15 @@ class ToolManager(Singleton):
                             if issubclass(cls, ToolBaseClass) and cls != ToolBaseClass:
                                 class_instance = cls()
 
-                                # Inject the API into the tool
-                                class_instance.api = self._tool_api_instance
-
-                                class_instance.on_startup() # Run initialization code
-
                                 if inherited_class != None:
                                     raise Exception(f"More then one class found that inherits from ToolBaseClass in tool {tool_name}. Only one class can inherit from ToolBaseClass.")
 
                                 inherited_class = class_instance
+
+                        # Inject the API into the tool
+                        inherited_class.api = self._tool_api_instance
+                        inherited_class.on_startup() # Run initialization code
+
                 except Exception as e:
                     warnings.warn(f"Failed to load script {script} into memory: {e}")
 

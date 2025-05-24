@@ -10,16 +10,9 @@ class AudioDataBase(ABC):
     Stores wave and mp3 audio data.
     """
     @abstractmethod
-    def _store_audio(self, data: list[bytes]) -> None:
+    def store_audio(self, data: list[bytes]) -> None:
         """
         Processes the audio data and stores it.
-        """
-        raise NotImplementedError
-    
-    @abstractmethod
-    def _process_audio(self, data: bytes) -> None:
-        """
-        Processes the audio data.
         """
         raise NotImplementedError
 
