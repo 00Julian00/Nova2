@@ -5,7 +5,7 @@
 ## [1.0.1] - 2025-05-03
 ### Changes
 #### Features
-- ^ed testing script
+- Added testing script
 - You can now set the voice similarity threshold for speaker detection in the transcriptor conditioning object
 
 #### Bug fixes
