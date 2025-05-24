@@ -5,15 +5,16 @@ Description: Acts as the base API for the main API and the tool API.
 from pathlib import Path
 import logging
 
-from .tts_manager import *
-from .llm_manager import *
-from .audio_manager import *
-from .transcriptor import *
-from .context_manager import *
-from .inference_engines import *
-from .security_manager import *
-
-from .inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
+from Nova2.app.tts_manager import *
+from Nova2.app.llm_manager import *
+from Nova2.app.context_data import *
+from Nova2.app.audio_manager import *
+from Nova2.app.transcriptor import *
+from Nova2.app.context_manager import *
+from Nova2.app.inference_engines import *
+from Nova2.app.security_manager import *
+from Nova2.app.tool_manager import *
+from Nova2.app.inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
 
 class NovaAPI:
     def __init__(self) -> None:
@@ -76,7 +77,7 @@ class NovaAPI:
         """
         self._stt.apply_config()
 
-    def load_tools(self, load_internal_tools: bool = True, **kwargs) -> List[LLMTool]:
+    def load_tools(self, load_internal_tools: bool = True, **kwargs) -> list[LLMTool]:
         """
         Load all tools in the tool folder into memory and make them ready for calling.
 
@@ -99,7 +100,7 @@ class NovaAPI:
         """
         self._tools.execute_tool_call(tool_calls=llm_response.tool_calls)
 
-    def run_llm(self, conversation: Conversation, memory_config: MemoryConfig = None, tools: List[LLMTool] = None, instruction: str = "") -> LLMResponse:
+    def run_llm(self, conversation: Conversation, memory_config: MemoryConfig | None = None, tools: list[LLMTool] | None = None, instruction: str = "") -> LLMResponse:
         """
         Run inference on the LLM.
 

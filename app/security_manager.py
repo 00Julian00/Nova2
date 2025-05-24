@@ -7,8 +7,8 @@ import keyring
 
 import huggingface_hub
 
-from .database_manager import SecretsDatabaseManager
-from .security_data import Secrets
+from Nova2.app.database_manager import SecretsDatabaseManager
+from Nova2.app.security_data import Secrets
 
 class SecretsManager:
     def __init__(self):
@@ -113,9 +113,9 @@ class SecretsManager:
         return None
     
     def _encrypt_secret(self, key: str) -> str:
-        fernet = Fernet(self._get_encryption_key())
+        fernet = Fernet(self._get_encryption_key()) # type: ignore
         return fernet.encrypt(key.encode()).decode()
 
     def _decrypt_secret(self, encrypted_secret: str) -> str:
-        fernet = Fernet(self._get_encryption_key())
+        fernet = Fernet(self._get_encryption_key()) # type: ignore
         return fernet.decrypt(encrypted_secret.encode()).decode()

@@ -2,7 +2,6 @@
 Description: Holds all data required for tool use.
 """
 
-from typing import Callable, List
 from dataclasses import dataclass
 
 @dataclass
@@ -33,7 +32,8 @@ class LLMTool:
     """
     name: str
     description: str
-    parameters: List[LLMToolParameter]
+    parameters: list[LLMToolParameter]
+    _instance: callable # type: ignore
 
     def to_dict(self) -> dict:
         """
@@ -65,14 +65,6 @@ class LLMTool:
         }
 
         return tool
-
-@dataclass
-class LoadedTool:
-    """
-    Defines a list of class instance of a tool together with its name from the metadata.
-    """
-    name: str
-    class_instance: Callable
 
 @dataclass
 class LLMToolCallParameter:

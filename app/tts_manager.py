@@ -2,9 +2,9 @@
 Description: This script handles text-to-speech.
 """
 
-from .inference_engines import InferenceEngineBaseTTS
-from .tts_data import TTSConditioning
-from .audio_manager import AudioData
+from Nova2.app.inference_engines import InferenceEngineBaseTTS
+from Nova2.app.tts_data import TTSConditioning
+from Nova2.app.audio_manager import AudioData
 
 class TTSManager:
     def __init__(self):
@@ -41,7 +41,7 @@ class TTSManager:
         self._inference_engine = self._inference_engine_dirty
         self._conditioning = self._conditioning_dirty
 
-        self._inference_engine.initialize_model(self._conditioning.model)
+        self._inference_engine.initialize_model(self._conditioning.model) # type: ignore
 
     def run_inference(self, text: str) -> AudioData:
         """
@@ -53,6 +53,8 @@ class TTSManager:
         Returns:
             AudioData: The generated audio data.
         """
+        assert self._inference_engine is not None
+        assert self._conditioning is not None
 
         split_text = text.split(". ")
 

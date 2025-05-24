@@ -23,7 +23,7 @@ class Word:
     text: str = ""
     start: float = 0.0
     end: float = 0.0
-    speaker_embedding: Optional[torch.FloatTensor] = None
+    speaker_embedding: Optional[torch.Tensor] = None
 
 @dataclass
 class TranscriptorConditioning:

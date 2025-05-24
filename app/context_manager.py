@@ -6,23 +6,37 @@ from threading import Thread
 import time
 from pathlib import Path
 import json
+import atexit
 
 import torch
 
-from .context_data import *
-from .transcriptor_data import Word
+from Nova2.app.context_data import ContextDatapoint, ContextSourceBase, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
+from Nova2.app.transcriptor_data import Word
+from Nova2.app.helpers import Singleton
 
-class ContextManager:
-    source_list = ContextGeneratorList()
-    context_data = []
-    def __init__(self) -> None:
+class ContextManager(Singleton):
+    def __init__(self, saving_interval: int = 120) -> None:
         """
         Prepares context data provided by a listener and stores them in the context file.
+
+        Arguments:
+            saving_interval (int): The interval in seconds at which the context data will be saved to a file. The context will also be saved when the program is closed.
         """
+        self.source_list = ContextGeneratorList()
+        self.context_data = []
+        self._previous_context_data = []
+        self.saving_interval = saving_interval
+
         self._context_file = Path(__file__).parent.parent / "data" / "context.json"
-        ContextManager.context_data = self._prepare_context_data()
+        self.context_data = self._prepare_context_data()
 
         self.ctx_limit = 25
+
+        # Save the context data to the disk when the program is terminated
+        atexit.register(self.save_context_data)
+
+        self._saving_thread = Thread(target=self._periodic_save, daemon=True)
+        self._saving_thread.start()
 
         self._context_recorder = Thread(target=self._record_context, daemon=True)
         self._context_recorder.start()
@@ -31,14 +45,14 @@ class ContextManager:
         """
         Begins to listen to the source and record the data.
         """
-        ContextManager.source_list.add(context_source=source)
+        self.source_list.add(context_source=source)
 
     def _record_context(self) -> None:
         """
         Stores the context of all bound context sources.
         """
         while True:
-            datapoint = ContextManager.source_list.get_next()
+            datapoint = self.source_list.get_next()
             if not datapoint:
                 continue
 
@@ -53,31 +67,40 @@ class ContextManager:
         Arguments:
             datapoint (ContextDatapoint): The datapoint that will be added to the context.
         """
-        ContextManager.context_data.append(datapoint.to_dict())
+        self.context_data.append(datapoint.to_dict())
 
         if self.ctx_limit > 0:
-            ContextManager.context_data = ContextManager.context_data[-self.ctx_limit:]
+            self.context_data = self.context_data[-self.ctx_limit:]
 
-        self.save_context_data()
-
-    def _overwrite_context(self, context: List[ContextDatapoint]) -> None:
+    def _overwrite_context(self, context: list[ContextDatapoint]) -> None:
         """
         Overwrites the entire context. Use with caution.
 
         Arguments:
             context (List[ContextDatapoint]): The data the context will be overwritten with.
         """
-        ContextManager.context_data = []
+        self.context_data = []
 
         for datapoint in context:
             self.add_to_context(datapoint=datapoint)
+
+    def _periodic_save(self):
+        """
+        Periodically saves the context data to the context.json file.
+        """
+        while True:
+            time.sleep(self.saving_interval)
+            self.save_context_data()
 
     def save_context_data(self) -> None:
         """
         Saves the context data to the context.json file.
         """
-        with open(self._context_file, 'w') as file:
-            json.dump(ContextManager.context_data, file, indent=4)
+        if self.context_data != self._previous_context_data:
+            with open(self._context_file, 'w') as file:
+                json.dump(self.context_data, file, indent=4)
+
+        self._previous_context_data = self.context_data
 
     def get_context_data(self) -> Context:
         """
@@ -90,7 +113,7 @@ class ContextManager:
 
         datapoints = []
 
-        for datapoint in ContextManager.context_data:
+        for datapoint in self.context_data:
             source_instance = None
             # Find the correct source
             for source in sources:
@@ -141,7 +164,7 @@ class ContextManager:
 
         self._overwrite_context(context=context)
 
-    def _prepare_context_data(self) -> List[dict]:
+    def _prepare_context_data(self) -> list[dict]:
         """
         Creates a context.json file if it does not exist. Returns the contents of the context.json file.
         
@@ -163,5 +186,5 @@ class ContextManager:
             text += word.text
         return text
     
-    def _take_average_embedding(self, embeddings: list[torch.FloatTensor]) -> torch.FloatTensor:
+    def _take_average_embedding(self, embeddings: list[torch.Tensor]) -> torch.Tensor:
         return torch.mean(torch.stack(embeddings), dim=0)

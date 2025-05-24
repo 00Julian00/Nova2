@@ -1,16 +1,16 @@
 from pathlib import Path
 import io
+import warnings
 
 import torch
 import torchaudio
 import numpy as np
 
-from ...zonos.model import Zonos
-from ...zonos.conditioning import make_cond_dict
-from .inference_base_tts import InferenceEngineBaseTTS
-from ...tts_data import TTSConditioning
-
-import sounddevice as sd
+from Nova2.app.zonos.model import Zonos
+from Nova2.app.zonos.conditioning import make_cond_dict
+from Nova2.app.inference_engines.inference_tts.inference_base_tts import InferenceEngineBaseTTS
+from Nova2.app.tts_data import TTSConditioning
+from Nova2.app.helpers import deprecated
 
 class InferenceEngineZonos(InferenceEngineBaseTTS):
     def __init__(self) -> None:
@@ -18,7 +18,8 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
         This class provides the interface to run inference via Zonos.
         """
 
-        self._model = None
+        self._model: Zonos | None = None
+        self._model_name: str = ""
         self._voice_files = Path(__file__).resolve().parent.parent.parent.parent / "data" / "voices"
         self._device = "cuda"
 
@@ -44,6 +45,8 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
             name (str): The name under shich the voice should be saved.
         """
 
+        assert self._model is not None
+
         path = Path(audio_dir)
 
         if not path.exists():
@@ -61,7 +64,7 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
 
         np.save(str(target_dir), embedding)
 
-    def _get_voice(self, name: str) -> torch.FloatTensor:
+    def _get_voice(self, name: str) -> torch.Tensor:
         """
         Get the voice embedding for the specified voice.
 
@@ -86,18 +89,29 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
     def is_model_ready(self) -> bool:
         return self._model != None
     
+    @deprecated(warning=f"Function 'get_current_model' is deprecated and will be removed in a future update. Use the property 'model' instead.")
     def get_current_model(self) -> str:
+        return self._model_name
+    
+    @property
+    def model(self) -> str | None:
         return self._model_name
     
     def free(self) -> None:
         self._model = None
+        self._model_name = ""
 
-    def run_inference(self, text: str, conditioning: TTSConditioning) -> bytes:
+    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> list[bytes]:
+        assert self._model is not None
+        
+        if stream:
+            warnings.warn("Streaming is currently not supported by the Zonos inference engine")
+        
         # Make sure the voice is only loaded once
         if self._voice == None:
             self._voice = self._get_voice(conditioning.voice)
         
-        if not conditioning.emotion:
+        if not conditioning.kwargs["emotion"]:
             # Use the standard emotion
             cond = make_cond_dict(
                 text=text,

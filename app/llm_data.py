@@ -2,11 +2,11 @@
 Description: Holds all data required to run inference on LLMs.
 """
 
-from typing import Literal, List
+from typing import Literal
 import json
 from dataclasses import dataclass, field
 
-from .tool_data import LLMToolCall, LLMToolCallParameter
+from Nova2.app.tool_data import LLMToolCall, LLMToolCallParameter
 
 class LLMConditioning:
     def __init__(
@@ -82,7 +82,7 @@ class LLMResponse:
     Stores necessary LLM response information.
     """
     message: str = ""
-    tool_calls: List["LLMToolCall"] = field(default_factory=list)
+    tool_calls: list["LLMToolCall"] = field(default_factory=list)
     used_tokens: int = 0
 
     def from_dict(self, llm_response: dict) -> None:
@@ -95,11 +95,11 @@ class LLMResponse:
         if "error" in llm_response:
             raise RuntimeError(llm_response["error"]["message"])
             
-        if llm_response.choices[0].message.content:
-            self.message = llm_response.choices[0].message.content
+        if llm_response.choices[0].message.content: # type: ignore
+            self.message = llm_response.choices[0].message.content # type: ignore
 
-        if llm_response.choices[0].message.tool_calls:
-            for tool_call in llm_response.choices[0].message.tool_calls:
+        if llm_response.choices[0].message.tool_calls: # type: ignore
+            for tool_call in llm_response.choices[0].message.tool_calls: # type: ignore
                 params = []
 
                 args = json.loads(tool_call.function.arguments)
@@ -123,7 +123,7 @@ class LLMResponse:
                     )
                 )
 
-        self.used_tokens = llm_response.usage.total_tokens
+        self.used_tokens = llm_response.usage.total_tokens # type: ignore
 
     def to_message(self) -> Message:
         """
@@ -196,9 +196,7 @@ class Conversation:
             if message.author == author:
                 del self._conversation[i]
 
-    def get_newest(self,
-            author: Literal["user", "assistant", "system", None] = None
-            ) -> Message | None:
+    def get_newest(self, author: Literal["user", "assistant", "system", None] = None) -> Message | None:
         """
         Get the newest message. If an author is parsed, the newest message of that author will be returned.
 
