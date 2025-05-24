@@ -1,10 +1,9 @@
-from Nova2 import ToolBaseClass
+from Nova2.tool_api import *
+
+from Nova2.app import database_manager, context_manager
 
 class Main(ToolBaseClass):
     def on_startup(self):
-        #self._db = database_manager.VoiceDatabaseManager()
-
-        #self._context = context_manager.ContextManager()
         pass
 
     def on_call(self, **kwargs):

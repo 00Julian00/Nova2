@@ -2,7 +2,7 @@
 Description: Manages the databases and provides a simple interface
 """
 
-from typing import List, Tuple
+from typing import Tuple
 import uuid
 from pathlib import Path
 import warnings
@@ -17,7 +17,7 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from .helpers import suppress_output
+from Nova2.app.helpers import suppress_output, Singleton
 
 # Database setup
 db_secrets_folder = Path(__file__).parent.parent / "db" / "db_secrets"
@@ -27,31 +27,17 @@ db_secrets_engine = create_engine(f"sqlite:///{db_secrets_location}", echo=False
 
 base = declarative_base()
 
-text_embedding_model = None
-
-def _with_open_connection(func: callable):
-    """
-    Replaces manual open and closing for database access.
-    """
-    def wrapper(self, *args, **kwargs):
-        if not self._qdrant_client:
-            self._prepare_database()
-        try:
-            return func(self, *args, **kwargs)
-        finally:
-            self._qdrant_client = None
-    return wrapper
-
 # RAG hat Swag. LG an Valentin Weyer.
-class MemoryEmbeddingDatabaseManager:
+class MemoryEmbeddingDatabaseManager(Singleton):
     def __init__(self):
         """
         This class is responsible for managing the memory database which stores memories as text-embeddings.
         It also provides a semantic search system used for retrieval augumented generation.
         """
         self._qdrant_client = None
+        self.text_embedding_model = None
+        self._prepare_database()
 
-    @_with_open_connection
     def create_new_entry(self, text: str) -> None:
         """
         Write new entry to the database. The input is chunked into sentences and each sentence is converted into
@@ -65,8 +51,9 @@ class MemoryEmbeddingDatabaseManager:
         for text in split_text:
             self._save_embedding_to_db(text)
 
-    @_with_open_connection
     def _save_embedding_to_db(self, text: str) -> None:
+        assert self._qdrant_client is not None
+        
         embedding = self._compute_embedding(text)
 
         #Prevent duplicate entries
@@ -80,21 +67,20 @@ class MemoryEmbeddingDatabaseManager:
             collection_name="memory_embeddings",
             points=[
                 PointStruct(
-                    id=id,
-                    vector=embedding,
+                    id=id, # type: ignore
+                    vector=embedding, # type: ignore
                     payload={"text": text}
                 )
             ]
         )
-
-    @_with_open_connection
+    
     def search_semantic(
             self,
             text: str,
             num_of_results: int = 1,
             search_area: int = 0,
             cosine_threshold: float = 0.6
-            ) -> List[List[str]] | None:
+            ) -> list[list[str]] | None:
         """
         Perform a semantic search in the database.
 
@@ -106,6 +92,7 @@ class MemoryEmbeddingDatabaseManager:
         Returns:
             list[list[str]]. Each string list is a result with the entries around the result in chronological order. Returns None if no results surpassed the cosine simmilarity threshold.
         """
+        assert self._qdrant_client is not None
 
         query_embedding = self._torch_tensor_to_float_list(self._compute_embedding(text=text))
 
@@ -126,13 +113,13 @@ class MemoryEmbeddingDatabaseManager:
 
         # The search is finished. The return structure can be built and returned
         if search_area <= 0:
-            return [[result.payload["text"]] for result in results]
+            return [[result.payload["text"]] for result in results] # type: ignore
         
         # Loop through all results and do area queries
         return_list = []
 
         for result in results:
-            return_list.append(self._query_area(result.id, search_area))
+            return_list.append(self._query_area(result.id, search_area)) # type: ignore
 
         return return_list
 
@@ -147,7 +134,9 @@ class MemoryEmbeddingDatabaseManager:
         Returns:
             list[str]: A list of results from the database.
         """
-        max_id = self._qdrant_client.get_collection("memory_embeddings").points_count - 1
+        assert self._qdrant_client is not None
+        
+        max_id = self._qdrant_client.get_collection("memory_embeddings").points_count - 1 # type: ignore
 
         limit_down = size
         limit_up = size
@@ -168,9 +157,11 @@ class MemoryEmbeddingDatabaseManager:
             offset=start_id
         )
 
-        return [result.payload["text"] for result in search_results.points]
+        return [result.payload["text"] for result in search_results.points] # type: ignore
     
     def _is_embedding_in_database(self, embedding: list[float], similarity_threshold: float = 0.8) -> bool:
+        assert self._qdrant_client is not None
+        
         results = self._qdrant_client.query_points(
             collection_name="memory_embeddings",
             query=embedding,
@@ -180,7 +171,7 @@ class MemoryEmbeddingDatabaseManager:
 
         return len(results.points) > 0
 
-    def _compute_embedding(self, text: str) -> torch.FloatTensor:
+    def _compute_embedding(self, text: str) -> torch.Tensor:
         """
         Computes an embedding for a given text with shape (1024).
 
@@ -190,37 +181,38 @@ class MemoryEmbeddingDatabaseManager:
         Returns:
             torch.FloatTensor: The computed embedding.
         """
-        embedding = text_embedding_model.encode(text, task="text-matching")
+        assert self.text_embedding_model is not None
+        
+        embedding = self.text_embedding_model.encode(text, task="text-matching")
 
         return torch.from_numpy(embedding).squeeze()
 
     def _prepare_database(self) -> None:
         db_location = Path(__file__).parent.parent / "db" / "db_memory_embeddings"
 
-        self._qdrant_client = QdrantClient(path=db_location)
+        self._qdrant_client = QdrantClient(path=db_location) # type: ignore
 
-        if not text_embedding_model:
+        if not self.text_embedding_model:
             with warnings.catch_warnings(action="ignore"): # Blocks a deprecation warning
                 with suppress_output(): # Don't show model downloads
-                    text_embedding_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True).to("cuda")
+                    self.text_embedding_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True).to("cuda")
 
         if not self._qdrant_client.collection_exists("memory_embeddings"):
             self._qdrant_client.create_collection(collection_name="memory_embeddings", vectors_config=VectorParams(size=1024, distance=Distance.COSINE))
 
-    def _torch_tensor_to_float_list(self, embedding: torch.FloatTensor) -> List[float]:
+    def _torch_tensor_to_float_list(self, embedding: torch.Tensor) -> list[float]:
         return embedding.squeeze().cpu().numpy().tolist()
 
-class VoiceDatabaseManager:
+class VoiceDatabaseManager(Singleton):
     def __init__(self) -> None:
         """
         This class is responsible for managing the database that stores the voice embeddings generated by 'transcriptor.py'.
         It also provides a method to compare two embeddings to determine wether two voices match.
         """
-        self._prepare_database()
         self._qdrant_client = None
+        self._prepare_database()
     
-    @_with_open_connection
-    def create_voice(self, embedding: torch.FloatTensor, name: str) -> None:
+    def create_voice(self, embedding: torch.Tensor, name: str) -> None:
         """
         Creates a new entry in the database.
 
@@ -228,6 +220,8 @@ class VoiceDatabaseManager:
             embedding (torch.FloatTensor): The embedding that will be stored in the database.
             name (str): The name of the person the voice belongs to. Will be stored together with the embedding.
         """
+        assert self._qdrant_client is not None
+
         self._qdrant_client.upsert(
             collection_name="voice_embeddings",
             points=[
@@ -238,9 +232,8 @@ class VoiceDatabaseManager:
                 )
             ]
         )
-
-    @_with_open_connection
-    def create_unknown_voice(self, embedding: torch.FloatTensor) -> str:
+    
+    def create_unknown_voice(self, embedding: torch.Tensor) -> str:
         """
         Creates a new voice with the name "UnknownVoiceX", where X is a number starting from 0. These can later be replaced with the correct name, after the system has obtained the name.
 
@@ -254,9 +247,8 @@ class VoiceDatabaseManager:
         self.create_voice(embedding, f"UnknownVoice{unknown_counter}")
 
         return f"UnknownVoice{unknown_counter}"
-
-    @_with_open_connection
-    def get_voice_name_from_embedding(self, embedding: torch.FloatTensor) -> Tuple[str, float] | None:
+    
+    def get_voice_name_from_embedding(self, embedding: torch.Tensor) -> Tuple[str, float] | None:
         """
         Searches for the closest voice embedding to the given embedding.
         Returns the name of the closest voice embedding together with the confidence score.
@@ -267,6 +259,8 @@ class VoiceDatabaseManager:
         Returns:
             Tuple[str, float] | None: Either returns a tuple with the name of the voice and the confidence score or None if no voice could be found.
         """
+        assert self._qdrant_client is not None
+
         search_results = self._qdrant_client.search(
             collection_name="voice_embeddings",
             query_vector=self._torch_tensor_to_float_list(embedding),
@@ -274,11 +268,10 @@ class VoiceDatabaseManager:
         )
 
         if len(search_results) > 0:
-            return search_results[0].payload["name"], search_results[0].score
+            return search_results[0].payload["name"], search_results[0].score # type: ignore
         else:
             return None
     
-    @_with_open_connection
     def does_voice_exist(self, name: str) -> bool:
         """
         Checks if a voice embedding with the given name exists in the database.
@@ -289,6 +282,8 @@ class VoiceDatabaseManager:
         Returns:
             bool: Wether a voice with that name already exists in the database.
         """
+        assert self._qdrant_client is not None
+
         filter_condition = models.Filter(
             must=[
                 models.FieldCondition(
@@ -305,8 +300,7 @@ class VoiceDatabaseManager:
         )
 
         return len(search_result[0]) > 0
-
-    @_with_open_connection
+    
     def get_voice_id(self, embedding: torch.FloatTensor) -> int | None:
         """
         Searches for the ID of a voice embedding in the database.
@@ -317,6 +311,8 @@ class VoiceDatabaseManager:
         Returns:
             int | None: The index of the voice or None if no voice was found.
         """
+        assert self._qdrant_client is not None
+
         search_results = self._qdrant_client.search(
             collection_name="voice_embeddings",
             query_vector=self._torch_tensor_to_float_list(embedding),
@@ -324,11 +320,10 @@ class VoiceDatabaseManager:
         )
 
         if len(search_results) > 0:
-            return search_results[0].id
+            return search_results[0].id # type: ignore
         else:
             return None
-
-    @_with_open_connection
+    
     def edit_voice_name(self, old_name: str, new_name: str) -> bool:
         """
         Edit the name of a voice in the database.
@@ -340,6 +335,8 @@ class VoiceDatabaseManager:
         Returns:
             bool: Wether the operation was successfull.
         """
+        assert self._qdrant_client is not None
+
         # Find the voice ID using the old name
         search_result = self._qdrant_client.scroll(
             collection_name="voice_embeddings",
@@ -371,12 +368,12 @@ class VoiceDatabaseManager:
     def _prepare_database(self) -> None:
         db_location = Path(__file__).parent.parent / "db" / "db_voice_embeddings"
 
-        self._qdrant_client = QdrantClient(path=db_location)
+        self._qdrant_client = QdrantClient(path=db_location) # type: ignore
 
         if not self._qdrant_client.collection_exists("voice_embeddings"):
             self._qdrant_client.create_collection(collection_name="voice_embeddings", vectors_config=VectorParams(size=512, distance=Distance.COSINE))
 
-    def _torch_tensor_to_float_list(self, embedding: torch.FloatTensor) -> List[float]:
+    def _torch_tensor_to_float_list(self, embedding: torch.Tensor) -> list[float]:
         return embedding.squeeze().cpu().numpy().tolist()
 
 class SecretsDatabaseManager:
@@ -415,7 +412,7 @@ class SecretsDatabaseManager:
         secret = self._session.query(Secret).filter_by(name=name).first()
 
         if secret:
-            return secret.encrypted_key
+            return secret.encrypted_key # type: ignore
         
     def edit_secret(self, name: str, encrypted_key: str) -> None:
         """
@@ -429,7 +426,7 @@ class SecretsDatabaseManager:
 
         try:
             if secret:
-                secret.encrypted_key = encrypted_key
+                secret.encrypted_key = encrypted_key # type: ignore
                 self._session.commit()
         except:
             self._session.rollback()

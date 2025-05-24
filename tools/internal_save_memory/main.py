@@ -1,4 +1,6 @@
-from Nova2 import ToolBaseClass
+from Nova2.tool_api import *
+
+from Nova2.app import database_manager
 
 class Main(ToolBaseClass):
     def on_startup(self):

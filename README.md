@@ -1,7 +1,7 @@
 # NOVA: Next-Generation Open-Source Virtual Assistant
 ### A Python framework for building AI assistants with minimal code. Integrates LLMs, Text-to-Speech, voice recognition, and long-term memory into a cohesive, easy-to-use system.
 
-Version 1.0.1 [Changelog](CHANGELOG.md)
+Version 1.1.0 [Changelog](CHANGELOG.md)
 
 ## Table of contents:
 1. [Introduction](#introduction)
@@ -25,11 +25,11 @@ You also need python 3.11.X.
 
 1. Clone the repo and navigate to the "Nova2" folder.
 2. Run ```pip install -r requirements.txt```
-3. LlamaCPP must be installed seperatly: ```pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124```
+3. LlamaCPP must be installed separately: ```pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124```
 
 If you are on a linux system, you are using conda and encounter an issue like this:  
-```OSError: cannot load library 'libportaudio.so.2':OSError: cannot load library 'libportaudio.so.2'```  
-Try updating libstc++:  
+```OSError: cannot load library 'libportaudio.so.2'```  
+Try updating libstdc++:  
 ```conda install -c conda-forge libstdcxx-ng```
 
 Nova is now installed and ready to be used. I recommend to take a look at the examples in ```./Nova2/examples``` as they give you an overview about how Nova works and how to use it.  
@@ -55,7 +55,7 @@ nova.apply_config_llm()
 
 conversation = Conversation()
 
-# This is our primary loop for the back and fourth conversation between user and LLM.
+# This is our primary loop for the back and forth conversation between user and LLM.
 while True:
     inp = input("User: ")
 
@@ -76,7 +76,7 @@ Remember to check out the examples to get more information about how to interact
 Nova aims to provide every building block you need to build an AI assistant pipeline:
 - LLM inference: You can use different "inference engines" to run inference on Large-Language models. Inference engines are essentially wrappers for existing systems and APIs that run LLM inference.
 - TTS inference: Like with LLMs, Nova provides inference engines for Text-to-Speech systems to turn text into spoken speech. Nova also includes an audio player that can play the resulting audio data.
-- Transcriptor: Nova provides a transcriptor to continously transcribe spoken speech into text using OpenAIs Whisper model. The transcriptor also computes voice embeddings that are stored in a database that allow you to differentiate between different speakers and recognize returning speakers.
+- Transcriptor: Nova provides a transcriptor to continuously transcribe spoken speech into text using OpenAIs Whisper model. The transcriptor also computes voice embeddings that are stored in a database that allow you to differentiate between different speakers and recognize returning speakers.
 - Long term memory: Nova has a built in retrieval-augumented-generation pipeline that allows the LLM to form long-term memories of important information.
 - Context system: The context system is responsible for short-term LLM memory. It organizes and saves data from various sources for the LLM to use.
 - Tool system: A modular tool system that allows the LLM to perform any action you give it access to. You can also create and add new tools very easily.
@@ -92,7 +92,7 @@ The LLM system comes with 2 inference engines that both handle LLM inference dif
 ### TTS system:
 The TTS system also comes with 2 inference engines:
 - The first inference engine uses the [Zonos TTS model](https://github.com/Zyphra/Zonos) developed by Zyphra.
-- The second inferene engine uses the [Elevenlabs API](https://elevenlabs.io/). They also offer a free API tier.
+- The second inference engine uses the [Elevenlabs API](https://elevenlabs.io/). They also offer a free API tier.
 
 ### Databases:
 Nova uses 2 different database libraries:
@@ -110,13 +110,13 @@ The transcriptor combines several AI models and frameworks into its audio-prepro
 ## Project structure
 This section is dedicated to giving you an overview about how the project is structured:  
   
-You can find almost all of the scripts in ./Nova2/app. Here, most systems are separated into a "manager" and a "data" script. The data script holds all custom datastructures the manager needs, while the manager does the actual work. The app folder also contains the "zonos" folder, which holds all code of the Zonos TTS. app also contains the "inference_engines" folder. This is where the inference engines for LLM and TTS are located. They are in the folders "inference_llm" and "inference_tts" respectivly. These folders also contain the scripts that contain the base classes the inference engine classes inherit from.  
+You can find almost all of the scripts in ./Nova2/app. Here, most systems are separated into a "manager" and a "data" script. The data script holds all custom data structures the manager needs, while the manager does the actual work. The app folder also contains the "zonos" folder, which holds all code of the Zonos TTS. app also contains the "inference_engines" folder. This is where the inference engines for LLM and TTS are located. They are in the folders "inference_llm" and "inference_tts" respectively. These folders also contain the scripts that contain the base classes the inference engine classes inherit from.  
   
 In ./Nova2/data you can find the "libraries" folder that not only contains a list of which tools are considered to be "internal", but also the "prompt_library.json" file which holds all built-in prompts the system uses.  
   
 ./Nova2/db holds all databases of the project, which are separated into the "db_memory_embeddings", "db_secrets" and "db_voice_embeddings" folders.  
   
-./Nova2/examples hold a bunch of Jupyter notebooks teching you the basics of how to user Nova.  
+./Nova2/examples hold a bunch of Jupyter notebooks teaching you the basics of how to use Nova.  
   
 ./Nova2/tool_api holds the "tool_api.py" script which provides tools with their API, as well as their base class they need to inherit from.  
   
@@ -125,15 +125,13 @@ In ./Nova2/data you can find the "libraries" folder that not only contains a lis
 ## Roadmap
 Below are a couple of ideas I want to implement into Nova in future releases. These are NOT guaranteed to be implemented in the future. They are just a couple of ideas I am currently playing around with.
 - Add support for Vision-Language models.
-- Allow for new secrets to be created via the API.
 - Add support for multiple different contexts.
 - Add a tool testing suite for user created tools.
-- Add a "voice lock" functionality where certain data can only be accessed if a whitelisted voice is speaking.
 - Add support for thinking models.
 - Add more inference engines and internal tools.
 
 ## Testing
-Current code coverage: 9%
+Current code coverage: 15%
 Tests are performed using the `unittest` and `coverage` libraries.
 
 ## Support the Project

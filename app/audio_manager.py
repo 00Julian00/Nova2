@@ -44,7 +44,7 @@ class AudioPlayer:
         if self._player_thread:
             self._stop_event.set()
             if self._current_playback:
-                self._current_playback.stop()
+                self._current_playback.stop() # type: ignore
 
             self._player_thread.join()
             self._player_thread = None

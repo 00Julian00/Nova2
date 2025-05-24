@@ -2,7 +2,7 @@
 Description: Holds all data related to context data.
 """
 
-from typing import Generator, List
+from typing import Generator
 from datetime import datetime
 from queue import Queue
 from enum import Enum
@@ -10,8 +10,9 @@ from threading import Thread
 import time
 from dataclasses import dataclass
 
-from .llm_data import Conversation, Message
-from .shared_types import (
+from Nova2.app.llm_data import Conversation, Message
+
+from Nova2.app.shared_types import (
     ContextSourceBase,
     ContextDatapointBase,
     ContextBase,
@@ -21,7 +22,7 @@ from .shared_types import (
 
 class ContextSource(ContextSourceBase):
     @classmethod
-    def get_all_sources(cls) -> List[type]:
+    def get_all_sources(cls) -> list[type]:
         return cls.__subclasses__()
 
 @dataclass

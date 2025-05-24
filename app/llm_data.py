@@ -2,12 +2,13 @@
 Description: Holds all data required to run inference on LLMs.
 """
 
-from typing import Literal, List
+from typing import Literal
 import json
 from dataclasses import dataclass, field
 
-from .tool_data import LLMToolCall, LLMToolCallParameter
-from .shared_types import (
+from Nova2.app.tool_data import LLMToolCall, LLMToolCallParameter
+
+from Nova2.app.shared_types import (
     LLMConditioningBase,
     MemoryConfigBase,
     MessageBase,
@@ -64,18 +65,24 @@ class Message(MessageBase):
 @dataclass
 class LLMResponse(LLMResponseBase):
     message: str = ""
-    tool_calls: List[LLMToolCall] = field(default_factory=list)
+    tool_calls: list[LLMToolCall] = field(default_factory=list)
     used_tokens: int = 0
 
     def from_dict(self, llm_response: dict) -> None:
+        """
+        Constructs the LLMResponse object including tool calls from the LLM response.
+
+        Arguments:
+            llm_response (dict): The response from the LLM that will be converted.
+        """
         if "error" in llm_response:
             raise RuntimeError(llm_response["error"]["message"])
             
-        if llm_response.choices[0].message.content:
-            self.message = llm_response.choices[0].message.content
+        if llm_response.choices[0].message.content: # type: ignore
+            self.message = llm_response.choices[0].message.content # type: ignore
 
-        if llm_response.choices[0].message.tool_calls:
-            for tool_call in llm_response.choices[0].message.tool_calls:
+        if llm_response.choices[0].message.tool_calls: # type: ignore
+            for tool_call in llm_response.choices[0].message.tool_calls: # type: ignore
                 params = []
 
                 args = json.loads(tool_call.function.arguments)
@@ -99,7 +106,7 @@ class LLMResponse(LLMResponseBase):
                     )
                 )
 
-        self.used_tokens = llm_response.usage.total_tokens
+        self.used_tokens = llm_response.usage.total_tokens # type: ignore
 
     def to_message(self) -> Message:
         return Message(author="assistant", content=self.message)
@@ -142,9 +149,16 @@ class Conversation(ConversationBase):
             if message.author == author:
                 del self._conversation[i]
 
-    def get_newest(self,
-            author: Literal["user", "assistant", "system", None] = None
-            ) -> Message | None:
+    def get_newest(self, author: Literal["user", "assistant", "system", None] = None) -> Message | None:
+        """
+        Get the newest message. If an author is parsed, the newest message of that author will be returned.
+
+        Arguments:
+            author (Literal["user", "assistant", "system", None]): An optional parameter. The author whose newest message will be returned.
+
+        Returns:
+            Message | None: The newest message (from the author). None if there are no messages in the conversation or no messages from the specified author.
+        """
         if len(self._conversation) == 0:
             return None
         
