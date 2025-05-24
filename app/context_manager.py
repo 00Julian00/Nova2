@@ -6,14 +6,13 @@ from threading import Thread
 import time
 from pathlib import Path
 import json
-from typing import List
 import atexit
 
 import torch
 
-from .context_data import ContextDatapoint, ContextSourceBase, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
-from .transcriptor_data import Word
-from .helpers import Singleton
+from Nova2.app.context_data import ContextDatapoint, ContextSourceBase, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
+from Nova2.app.transcriptor_data import Word
+from Nova2.app.helpers import Singleton
 
 class ContextManager(Singleton):
     def __init__(self, saving_interval: int = 120) -> None:
@@ -32,6 +31,9 @@ class ContextManager(Singleton):
         self.context_data = self._prepare_context_data()
 
         self.ctx_limit = 25
+
+        # Save the context data to the disk when the program is terminated
+        atexit.register(self.save_context_data)
 
         self._saving_thread = Thread(target=self._periodic_save, daemon=True)
         self._saving_thread.start()
@@ -70,7 +72,7 @@ class ContextManager(Singleton):
         if self.ctx_limit > 0:
             self.context_data = self.context_data[-self.ctx_limit:]
 
-    def _overwrite_context(self, context: List[ContextDatapoint]) -> None:
+    def _overwrite_context(self, context: list[ContextDatapoint]) -> None:
         """
         Overwrites the entire context. Use with caution.
 
@@ -90,7 +92,6 @@ class ContextManager(Singleton):
             time.sleep(self.saving_interval)
             self.save_context_data()
 
-    @atexit.register
     def save_context_data(self) -> None:
         """
         Saves the context data to the context.json file.
@@ -163,7 +164,7 @@ class ContextManager(Singleton):
 
         self._overwrite_context(context=context)
 
-    def _prepare_context_data(self) -> List[dict]:
+    def _prepare_context_data(self) -> list[dict]:
         """
         Creates a context.json file if it does not exist. Returns the contents of the context.json file.
         
@@ -185,5 +186,5 @@ class ContextManager(Singleton):
             text += word.text
         return text
     
-    def _take_average_embedding(self, embeddings: list[torch.FloatTensor]) -> torch.FloatTensor:
+    def _take_average_embedding(self, embeddings: list[torch.Tensor]) -> torch.Tensor:
         return torch.mean(torch.stack(embeddings), dim=0)

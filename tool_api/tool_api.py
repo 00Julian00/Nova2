@@ -2,11 +2,9 @@
 Description: This script is the API for the tools that they can use to interact with Nova and receive data from the system via the event system.
 """
 
-from typing import List
-
-from app.API import NovaAPI
-from app.context_data import ContextDatapoint, ContextSource_ToolResponse
-from app.context_manager import ContextManager
+from Nova2.app.API import NovaAPI
+from Nova2.app.context_data import ContextDatapoint, ContextSource_ToolResponse
+from Nova2.app.context_manager import ContextManager
 
 class Nova(NovaAPI):
     def __init__(self) -> None:
@@ -15,7 +13,7 @@ class Nova(NovaAPI):
         """
         super().__init__()
 
-    def add_to_context(self, name: str, content: str, id: str) -> None:
+    def add_to_context(self, name: str, content: str, id: str) -> None: # type: ignore
         """
         Add a response from the tool to the context.
 
@@ -39,10 +37,10 @@ class ToolBaseClass:
     A tool must have a class that inherits from this class, or it can not be used by the system.
     """
     def __init__(self) -> None:
-        self._tool_call_id = None
+        self._tool_call_id: str = ""
 
     @classmethod
-    def get_subclasses(cls) -> List[type]:
+    def get_subclasses(cls) -> list[type]:
         """
         Returns all subclasses of the current class.
 

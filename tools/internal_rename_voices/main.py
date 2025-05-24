@@ -1,6 +1,6 @@
-from tool_api import ToolBaseClass, Nova
+from Nova2.tool_api import *
 
-from app import database_manager, context_manager
+from Nova2.app import database_manager, context_manager
 
 class Main(ToolBaseClass):
     def on_startup(self):

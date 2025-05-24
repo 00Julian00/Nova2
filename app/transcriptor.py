@@ -6,10 +6,10 @@ import os
 import queue
 import threading
 import time
-from typing import Generator, List
+from typing import Generator
 import multiprocessing
 
-from . import helpers
+from Nova2.app import helpers
 
 import langcodes
 import numpy as np
@@ -23,9 +23,9 @@ with helpers.suppress_output():
     from speechbrain.inference.speaker import EncoderClassifier
 import silero_vad
 
-from .transcriptor_data import Word, TranscriptorConditioning
-from .database_manager import VoiceDatabaseManager
-from .context_data import ContextDatapoint, ContextSource_Voice
+from Nova2.app.transcriptor_data import Word, TranscriptorConditioning
+from Nova2.app.database_manager import VoiceDatabaseManager
+from Nova2.app.context_data import ContextDatapoint, ContextSource_Voice
 
 SAMPLE_RATE = 16000
 
@@ -139,6 +139,8 @@ class VoiceAnalysis:
         return audio_tensor.numpy()
 
     def _detect_voice_activity(self, audio_chunk: torch.FloatTensor) -> bool:        
+        assert self._conditioning is not None
+        
         timestamps = silero_vad.get_speech_timestamps(
             model=self._vad_model,
             audio=audio_chunk,
@@ -148,18 +150,18 @@ class VoiceAnalysis:
 
         return len(timestamps) > 0
 
-    def _transcribe(self, audio_tensor: torch.FloatTensor) -> List[Word]:
+    def _transcribe(self, audio_tensor: torch.Tensor) -> list[Word]:
         if self._language is not None:
             segments, info = self._model.transcribe(audio_tensor.cpu().numpy(), beam_size=5, language=self._language, condition_on_previous_text=False, word_timestamps=True)
         else:
             segments, info = self._model.transcribe(audio_tensor.cpu().numpy(), beam_size=5, condition_on_previous_text=False, word_timestamps=True) # Leave the language undefined so whisper autodetects it
         transcription = []
         for segment in segments:
-            for word in segment.words:
+            for word in segment.words: # type: ignore
                 transcription.append(Word(text=word.word, start=word.start, end=word.end))
         return transcription
 
-    def _update_transcription(self, words: List[Word]) -> tuple[List[Word], int]:
+    def _update_transcription(self, words: list[Word]) -> tuple[list[Word], int]:
         new_locked_words = self._locked_words
         for i in range(len(words)):
             if i < self._locked_words:
@@ -174,7 +176,9 @@ class VoiceAnalysis:
         
         return self._current_sentence, self._locked_words
     
-    def _generate_speaker_embedding(self, audio_data: torch.FloatTensor, start: float, end: float) -> torch.FloatTensor:
+    def _generate_speaker_embedding(self, audio_data: torch.Tensor, start: float, end: float) -> torch.Tensor:
+        assert self._speaker_embedding_model is not None
+        
         if audio_data.ndim == 1:
             audio_data = audio_data.unsqueeze(0)
 
@@ -271,10 +275,12 @@ class VoiceAnalysis:
                         
                         yield datapoint
 
-    def resolve_speaker(self, words: List[Word]) -> str:
+    def resolve_speaker(self, words: list[Word]) -> str:
         """
         Finds the name of the current speaker 
         """
+        assert self._conditioning is not None
+
         embedding_list = []
         for word in words:
             embedding_list.append(word.speaker_embedding)
@@ -299,7 +305,7 @@ class VoiceAnalysis:
         if self._recording_thread.is_alive():
             self._recording_thread.join()
 
-    def _split_audio_by_timestamps(self, audio_data: torch.FloatTensor, start: float, end: float) -> torch.FloatTensor:
+    def _split_audio_by_timestamps(self, audio_data: torch.Tensor, start: float, end: float) -> torch.Tensor:
         start_sample = int(start * SAMPLE_RATE)
         end_sample = int(end * SAMPLE_RATE)
 
@@ -319,7 +325,7 @@ class VoiceProcessingHelpers:
         pass
     
     @staticmethod
-    def word_array_to_string(word_array: List[Word]) -> str:
+    def word_array_to_string(word_array: list[Word]) -> str:
         """
         Extracts the text from an array of word objects and returns it as a string.
 
@@ -349,7 +355,7 @@ class VoiceProcessingHelpers:
         return (F.cosine_similarity(emb1.squeeze(), emb2.squeeze(), dim=0).mean().item())
     
     @staticmethod
-    def take_average_embedding(embeddings: List[torch.FloatTensor]) -> torch.FloatTensor:
+    def take_average_embedding(embeddings: list[torch.Tensor]) -> torch.Tensor:
         """
         Takes the average of a List of embeddings.
 

@@ -4,12 +4,12 @@ Description: This script manages interactions with LLMs.
 
 from transformers import AutoTokenizer
 
-from .tool_data import LLMTool
-from .database_manager import MemoryEmbeddingDatabaseManager
-from .inference_engines import InferenceEngineBaseLLM
-from .llm_data import LLMConditioning, LLMResponse, Conversation, MemoryConfig, Message
-from .context_data import Context
-from .library_manager import LibraryManager
+from Nova2.app.tool_data import LLMTool
+from Nova2.app.database_manager import MemoryEmbeddingDatabaseManager
+from Nova2.app.inference_engines import InferenceEngineBaseLLM
+from Nova2.app.llm_data import LLMConditioning, LLMResponse, Conversation, MemoryConfig, Message
+from Nova2.app.context_data import Context
+from Nova2.app.library_manager import LibraryManager
 
 class LLMManager:
     def __init__(self) -> None:
@@ -69,24 +69,29 @@ class LLMManager:
         Returns:
             LLMResponse: The response of the LLM. Also includes tool calls.
         """
+        assert self._conditioning is not None
+        assert self._inference_engine is not None
+
         if type(conversation) == Context:
-            conversation = conversation.to_conversation()
+            conv: Conversation = conversation.to_conversation()
+        else:
+            conv: Conversation = conversation # type: ignore
 
         if self._conditioning.add_default_sys_prompt:
             prompt = self._library.retrieve_datapoint("prompt_library", "default_sys_prompt")
-            conversation.add_message(Message(author="system", content=prompt))
+            conv.add_message(Message(author="system", content=prompt)) # type: ignore
 
         if instruction != "" and instruction is not None:
-            conversation.add_message(Message(author="system", content=instruction))
+            conv.add_message(Message(author="system", content=instruction))
 
         # Can not process an empty conversation. Add dummy data
-        if len(conversation._conversation) == 0:
-            conversation.add_message(Message(author="system", content="You are a helpful assistant."))
+        if len(conv._conversation) == 0:
+            conv.add_message(Message(author="system", content="You are a helpful assistant."))
 
         if memory_config and memory_config.retrieve_memories:
             db = MemoryEmbeddingDatabaseManager()
 
-            text = conversation.get_newest("user").content
+            text = conv.get_newest("user").content # type: ignore
 
             text_split = text.split(". ")
 
@@ -108,11 +113,11 @@ class LLMManager:
                     results += "|"
 
             if results != "": # Don't add anything if there are no search results
-                conversation.add_message(
+                conv.add_message(
                     Message(author="system", content=f"Information that is potentially relevant to the conversation: {results}. This information was retrieved from the database.")
                     )
 
-        return self._inference_engine.run_inference(conversation=conversation, tools=tools)
+        return self._inference_engine.run_inference(conversation=conv, tools=tools)
     
     @staticmethod
     def count_tokens(text: str, model: str) -> int:
