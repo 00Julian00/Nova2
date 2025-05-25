@@ -1,6 +1,8 @@
 # NOVA: Next-Generation Open-Source Virtual Assistant
 ### A Python framework for building AI assistants with minimal code. Integrates LLMs, Text-to-Speech, voice recognition, and long-term memory into a cohesive, easy-to-use system.
 
+## You are looking at a development branch for the Version 2.0.0. This branch might contain unstable code, as well as incomplete features and outdated documentation. This branch should not be used for production.
+
 Version 1.1.0 [Changelog](CHANGELOG.md)
 
 ## Table of contents:
