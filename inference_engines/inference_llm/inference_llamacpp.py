@@ -3,21 +3,21 @@ import atexit
 
 from llama_cpp import Llama
 
-from Nova2.app.inference_engines.inference_llm.inference_base_llm import InferenceEngineBaseLLM
+from Nova2.app.interfaces import LLMInferenceEngineBase
 from Nova2.app.tool_data import *
 from Nova2.app.llm_data import *
-from Nova2.app.helpers import suppress_output, deprecated
+from Nova2.app.helpers import suppress_output
 
-class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
+class InferenceEngineLlamaCPP(LLMInferenceEngineBase):
     def __init__(self) -> None:
         """
-        This class provides the interface to run inference via Llama cpp.
+        This class runs LLM inference via llama.cpp.
         """
         super().__init__()
 
         self.is_local = True
 
-        self._model: Llama | None = None
+        self._model: Llama = None # type: ignore
         self._conditioning: LLMConditioning | None = None
 
         self._temp = 0
@@ -25,7 +25,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
 
         atexit.register(self.free) # Safely clean up the model on exit
 
-    def initialize_model(self, conditioning: LLMConditioning) -> None:
+    def initialize_model(self, conditioning: LLMConditioning) -> None: # type: ignore
         self.free()
 
         self._conditioning = conditioning
@@ -49,9 +49,7 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
         self._temp = conditioning.temperature
         self._max_tokens = conditioning.max_completion_tokens
 
-    def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None) -> LLMResponse:
-        assert self._model is not None
-        
+    def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None) -> LLMResponse: # type: ignore
         conv = conversation.to_list()
 
         # Check if tools were parsed
@@ -86,15 +84,9 @@ class InferenceEngineLlamaCPP(InferenceEngineBaseLLM):
             del self._model
         except:
             pass # Somewhere in Llamacpp an execption occurs in __del__. This try except just isolates that bug
-
-    @deprecated(warning=f"Function 'get_current_model' is deprecated and will be removed in a future update. Use the property 'model' instead.")
-    def get_current_model(self) -> str:
-        if not self._conditioning:
-            return ""
-        return self._conditioning.model
     
     @property
-    def model(self) -> str | None:
+    def model(self) -> str:
         if not self._conditioning:
             return ""
         return self._conditioning.model

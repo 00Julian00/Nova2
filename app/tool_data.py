@@ -4,7 +4,8 @@ Description: Holds all data required for tool use.
 
 from dataclasses import dataclass
 
-from .shared_types import (
+from Nova2.tool_api.tool_api import ToolBaseClass
+from Nova2.app.interfaces import (
     LLMToolBase,
     LLMToolParameterBase,
     LoadedToolBase,
@@ -57,7 +58,7 @@ class LLMTool(LLMToolBase):
 @dataclass
 class LoadedTool(LoadedToolBase):
     name: str
-    class_instance: Callable
+    class_instance: ToolBaseClass
 
 @dataclass
 class LLMToolCallParameter(LLMToolCallParameterBase):

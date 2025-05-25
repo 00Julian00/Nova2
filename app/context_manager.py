@@ -11,7 +11,7 @@ import atexit
 import torch
 
 from Nova2.app.context_data import ContextDatapoint, ContextSource, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
-from Nova2.app.transcriptor_data import Word
+from Nova2.app.stt_data import Word
 from Nova2.app.helpers import Singleton
 
 class ContextManager(Singleton):

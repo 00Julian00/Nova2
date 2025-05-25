@@ -6,10 +6,8 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import List
 
-from Nova2.app.shared_types import (
-    TranscriptorConditioningBase,
-    InferenceEngineLLMBase,
-    InferenceEngineTTSBase,
+from Nova2.app.interfaces import (
+    STTConditioningBase,
     LLMConditioningBase,
     TTSConditioningBase,
     LLMToolBase,
@@ -24,21 +22,21 @@ from Nova2.app.shared_types import (
 
 class APIAbstract(ABC):
     @abstractmethod
-    def configure_transcriptor(self, conditioning: TranscriptorConditioningBase) -> None:
+    def configure_transcriptor(self, conditioning: STTConditioningBase) -> None:
         """
         Configure the transcriptor.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def configure_llm(self, inference_engine: InferenceEngineLLMBase, conditioning: LLMConditioningBase) -> None:
+    def configure_llm(self,conditioning: LLMConditioningBase) -> None:
         """
         Configure the LLM system.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def configure_tts(self, inference_engine: InferenceEngineTTSBase, conditioning: TTSConditioningBase) -> None:
+    def configure_tts(self, conditioning: TTSConditioningBase) -> None:
         """
         Configure the Text-to-Speech system.
         """

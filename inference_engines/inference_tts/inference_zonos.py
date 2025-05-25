@@ -6,19 +6,19 @@ import torch
 import torchaudio
 import numpy as np
 
-from Nova2.app.zonos.model import Zonos
-from Nova2.app.zonos.conditioning import make_cond_dict
-from Nova2.app.inference_engines.inference_tts.inference_base_tts import InferenceEngineBaseTTS
+from Nova2.external.zonos.model import Zonos
+from Nova2.external.zonos.conditioning import make_cond_dict
+from Nova2.app.interfaces import TTSInferenceEngineBase
 from Nova2.app.tts_data import TTSConditioning
-from Nova2.app.helpers import deprecated
+from Nova2.app.audio_data import AudioData
 
-class InferenceEngineZonos(InferenceEngineBaseTTS):
+class InferenceEngineZonos(TTSInferenceEngineBase):
     def __init__(self) -> None:
         """
         This class provides the interface to run inference via Zonos.
         """
 
-        self._model: Zonos | None = None
+        self._model: Zonos = None # type: ignore
         self._model_name: str = ""
         self._voice_files = Path(__file__).resolve().parent.parent.parent.parent / "data" / "voices"
         self._device = "cuda"
@@ -44,9 +44,6 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
             audio_dir (str): The directory of the audio file containing the voice.
             name (str): The name under shich the voice should be saved.
         """
-
-        assert self._model is not None
-
         path = Path(audio_dir)
 
         if not path.exists():
@@ -89,21 +86,15 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
     def is_model_ready(self) -> bool:
         return self._model != None
     
-    @deprecated(warning=f"Function 'get_current_model' is deprecated and will be removed in a future update. Use the property 'model' instead.")
-    def get_current_model(self) -> str:
-        return self._model_name
-    
     @property
-    def model(self) -> str | None:
+    def model(self) -> str:
         return self._model_name
     
     def free(self) -> None:
-        self._model = None
+        del self._model
         self._model_name = ""
 
-    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> list[bytes]:
-        assert self._model is not None
-        
+    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> AudioData: # type: ignore
         if stream:
             warnings.warn("Streaming is currently not supported by the Zonos inference engine")
         
@@ -156,5 +147,5 @@ class InferenceEngineZonos(InferenceEngineBaseTTS):
 
         wav_bytes = buffer.getvalue()
         buffer.close()
-        # At this point I have no idea why only index 0 should be returned, but it works better for some reason
-        return [[wav_bytes][0]]
+
+        return AudioData(wav_bytes)

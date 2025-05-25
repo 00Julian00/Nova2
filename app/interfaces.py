@@ -5,16 +5,13 @@ Description: Provides abstract classes for all custom datatypes.
 from abc import ABC, abstractmethod
 from typing import Literal
 
+from numpy import ndarray
+from torch import Tensor
+
 class AudioDataBase(ABC):
     """
     Stores wave and mp3 audio data.
     """
-    @abstractmethod
-    def store_audio(self, data: list[bytes]) -> None:
-        """
-        Processes the audio data and stores it.
-        """
-        raise NotImplementedError
 
 class MessageBase(ABC):
     """
@@ -60,7 +57,7 @@ class ConversationBase(ABC):
     @abstractmethod
     def delete_all_from(self, author: Literal["user", "assistant", "system"]) -> None:
         """
-        Delete all messages from an author. Can be used to purge system prompts if behaviour should be overwritten.
+        Delete all messages from an author. Can be used to purge system prompts if behavior should be overwritten.
 
         Arguments:
             author (Literal["user", "assistant", "system"]): The author from whom all messages should be deleted.
@@ -174,7 +171,7 @@ class ContextGeneratorBase(ABC):
 
 class ContextGeneratorListBase(ABC):
     """
-    Manages a dynamic thread-safe list of context sources that can be itterated through.
+    Manages a dynamic thread-safe list of context sources that can be iterated through.
     """
     @abstractmethod
     def add(self, context_source: ContextGeneratorBase) -> None:
@@ -195,19 +192,6 @@ class ContextGeneratorListBase(ABC):
         """
         raise NotImplementedError
 
-class LLMConditioningBase(ABC):
-    """
-    Stores all values required for LLM conditioning.
-
-    Arguments:
-        model (str): The model name. Must a valid huggingface repo ID.
-        file (str): The file to use from that repo. Must be GGUF format.
-        temperature (float): The temperature to use for inference.
-        max_completion_tokens (int): How many tokens the model is allowed to generate.
-        add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
-    """
-    pass
-
 class MemoryConfigBase(ABC):
     """
     Stores the settings that determines how memories are retrieved.
@@ -224,6 +208,7 @@ class LLMResponseBase(ABC):
     """
     Stores the response of the LLM.
     """
+    message: str = ""
     @abstractmethod
     def from_dict(self, llm_response: dict) -> None:
         """
@@ -300,60 +285,71 @@ class WordBase(ABC):
     """
     pass
 
-class TranscriptorConditioningBase(ABC):
+class STTConditioningBase(ABC):
     """
     Stores all values required for transcriptor conditioning.
 
     Arguments:
+        model (str): The model to use.
         microphone_index (int): The index of the microphone to use for recording.
-        model (Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"]): The Whisper model to use. Defaults to "large-v3".
-        device (Literal["cpu", "cuda"]): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
+        device (str): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
         voice_boost (float): How much to boost the voice in the audio preprocessing stage. Setting it to 0 disables this feature. Defaults to 10.0.
-        language (str): The language to use for the transcription. Must be a valid language code. If None, the language will be autodetected. If possible, the language should be set to improve accuracy. Defaults to None.
         vad_threshold (float): The confidence threshold of the voice-activity-detection model. Audio chunks above this threshold will be considered to contain speech.
         voice_similarity_threshold (float): The threshold for the voice similarity. If the similarity between the speaker and a voice in the database, they will be considered to be the same voice. Defaults to 0.8.
     """
     pass
 
-class TTSConditioningBase(ABC):
+class STTInferenceEngineBase(ABC):
     """
-    Stores all values required for TTS conditioning.
-    Note that some parameters are inference engine exclusive and will be ignored if an incompatibe engine is used.
-
-    Arguments:
-        model (str): The TTS model to use. Must be a valid huggingface repo ID.
-        voice (str): The voice to use. Must be a valid voice name.
-        expressivness (float): The expressiveness of the voice. 0 is neutral, 1 is very expressive.
-        stability (float): The stability of the voice. 0 is very unstable, 1 is very stable.
-    """
-    pass
-
-class InferenceEngineLLMBase(ABC):
-    """
-    Provides a base class for all LLM inference engines to ensure a consistent structure.
+    Provides a base class for all STT inference engines to ensure a consistent structure.
     """
     @abstractmethod
-    def initialize_model(self) -> None:
+    def initialize_model(self, conditioning: STTConditioningBase) -> None:
         """
         Load the model into VRAM/RAM. Required to run inference. Call free() to free up the VRAM/RAM again.
         """
         raise NotImplementedError
     @abstractmethod
-    def initialize_model_async(self) -> None:
+    def free(self) -> None:
         """
-        Load the model into VRAM/RAM. Required to run inference. Call free() to free up the VRAM/RAM again. Runs async.
-        """
-        raise NotImplementedError
-    @abstractmethod
-    def is_model_ready(self) -> bool:
-        """
-        Checks if the engine is ready to run inference.
+        Frees the VRAM/RAM. The model can not be used anymore after it was freed. It needs to be loaded again by calling select_model().
         """
         raise NotImplementedError
     @abstractmethod
-    def get_current_model(self) -> str:
+    def run_inference(self, audio_data: ndarray | Tensor, language: str = "") -> list[WordBase]:
         """
-        Which model is currently loaded.
+        Transcribe audio data into a word array.
+
+        Arguments:
+            audio_data (ndarray | Tensor): The audio data to transcribe as a numpy array or a torch tensor.
+            language (str): What language the speech is in. Results in better transcriptions if set correctly. Leave as an empty string if the speech is in multiple languages or the language is unknown. Defaults to "".
+
+        Returns:
+            LLMResponse: The response from the LLM.
+        """
+        raise NotImplementedError
+
+class LLMConditioningBase(ABC):
+    """
+    Stores all values required for LLM conditioning.
+
+    Arguments:
+        model (str): The model name. Must a valid huggingface repo ID.
+        file (str): The file to use from that repo. Must be GGUF format.
+        temperature (float): The temperature to use for inference.
+        max_completion_tokens (int): How many tokens the model is allowed to generate.
+        add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
+    """
+    pass
+
+class LLMInferenceEngineBase(ABC):
+    """
+    Provides a base class for all LLM inference engines to ensure a consistent structure.
+    """
+    @abstractmethod
+    def initialize_model(self, conditioning: LLMConditioningBase) -> None:
+        """
+        Load the model into VRAM/RAM. Required to run inference. Call free() to free up the VRAM/RAM again.
         """
         raise NotImplementedError
     @abstractmethod
@@ -375,33 +371,28 @@ class InferenceEngineLLMBase(ABC):
             LLMResponse: The response from the LLM.
         """
         raise NotImplementedError
-    
-class InferenceEngineTTSBase(ABC):
+
+class TTSConditioningBase(ABC):
+    """
+    Stores all values required for TTS conditioning.
+    Note that some parameters are inference engine exclusive and will be ignored if an incompatible engine is used.
+
+    Arguments:
+        model (str): The TTS model to use. Must be a valid huggingface repo ID.
+        voice (str): The voice to use. Must be a valid voice name.
+        expressivness (float): The expressiveness of the voice. 0 is neutral, 1 is very expressive.
+        stability (float): The stability of the voice. 0 is very unstable, 1 is very stable.
+    """
+    pass
+
+class TTSInferenceEngineBase(ABC):
     """
     Provides a base class for all TTS inference engines to ensure a consistent structure.
     """
     @abstractmethod
-    def initialize_model(self) -> None:
+    def initialize_model(self, model) -> None:
         """
         Load the model into VRAM/RAM. Required to run inference. Call free() to free up the VRAM/RAM again.
-        """
-        raise NotImplementedError
-    @abstractmethod
-    def initialize_model_async(self) -> None:
-        """
-        Load the model into VRAM/RAM. Required to run inference. Call free() to free up the VRAM/RAM again. Runs async.
-        """
-        raise NotImplementedError
-    @abstractmethod
-    def is_model_ready(self) -> bool:
-        """
-        Checks if the engine is ready to run inference.
-        """
-        raise NotImplementedError
-    @abstractmethod
-    def get_current_model(self) -> str:
-        """
-        Which model is currently loaded.
         """
         raise NotImplementedError
     @abstractmethod
@@ -411,7 +402,7 @@ class InferenceEngineTTSBase(ABC):
         """
         raise NotImplementedError
     @abstractmethod
-    def run_inference(self, text: str, conditioning: TTSConditioningBase, stream: bool) -> bytes:
+    def run_inference(self, text: str, conditioning: TTSConditioningBase, stream: bool) -> AudioDataBase:
         """
         Get the spoken text from the TTS.
 

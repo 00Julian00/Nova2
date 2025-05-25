@@ -23,6 +23,7 @@ class ToolManager(Singleton):
         """
         self._loaded_tools: list[LLMTool] = []
         self._tool_api_instance = NovaAPI()
+        self._lib_manager = LibraryManager()
     
     def load_tools(self, load_internal: bool = True, **kwargs) -> list[LLMTool]:
         """
@@ -44,7 +45,7 @@ class ToolManager(Singleton):
         elif "exclude" in kwargs.keys():
             tool_list = kwargs["exclude"]
 
-        internals = LibraryManager().retrieve_datapoint(library_name="internal_tools", datapoint_name="internal_tools")
+        internals = self._lib_manager.retrieve_datapoint(library_name="internal_tools", datapoint_name="internal_tools")
 
         # Loads all the tools metadata and creates LLMTool objects from them.
         tools_dir = Path(__file__).parent.parent / "tools"
@@ -113,7 +114,7 @@ class ToolManager(Singleton):
                         inherited_class.on_startup() # Run initialization code
 
                 except Exception as e:
-                    warnings.warn(f"Failed to load script {script} into memory: {e}")
+                    warnings.warn(f"Failed to load script {script}. Reason: {e}")
 
                 if not inherited_class:
                     continue
@@ -128,13 +129,8 @@ class ToolManager(Singleton):
 
         return self._loaded_tools
     
-    # Man I do love sketchy solutions to circular imports
-    def _get_base_class(self):
-        from Nova2.tool_api.tool_api import ToolBaseClass
-        return ToolBaseClass
-    
     def _validate_tool_call(self, call: LLMToolCall, tool: LLMTool) -> bool:
-        # Verifies wether all paramaters in the call are defined in the tool and wether the call
+        # Verifies wether all parameters in the call are defined in the tool and wether the call
         # contains all required parameters
 
         # All parameters defined?
@@ -157,7 +153,7 @@ class ToolManager(Singleton):
         core system will not be affected.
 
         Arguments:
-            tool_calls (List[LLMToolCall]): The tools that should be executed.
+            tool_calls (list[LLMToolCall]): The tools that should be executed.
         """
         for tool_call in tool_calls:
             try:
@@ -172,11 +168,11 @@ class ToolManager(Singleton):
 
                             ContextManager().add_to_context(datapoint=dp)
 
-                            return
+                            continue
                         
                         params = {}
                         for param in tool_call.parameters:
-                            # Use ast to cast to an apropriate datatype
+                            # Use ast to cast to an appropriate datatype
                             try:
                                 casted_param = ast.literal_eval(param.value)
                                 params[param.name] = casted_param
@@ -186,17 +182,6 @@ class ToolManager(Singleton):
 
                         tool._instance._tool_call_id = tool_call.id
                         tool._instance.on_call(**params)
-                        
-                        return
-
-                dp = ContextDatapoint(
-                    source=ContextSource_System(),
-                    content=f"Tool \"{tool_call.name}\" is not loaded in memory and can therefore not be executed."
-                )
-
-                ContextManager().add_to_context(datapoint=dp)
-
-                warnings.warn(f"Attempted to call tool {tool_call.name}, but no tool with this name is loaded.")
 
             except Exception as e:
                 dp = ContextDatapoint(

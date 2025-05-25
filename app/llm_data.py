@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from Nova2.app.tool_data import LLMToolCall, LLMToolCallParameter
 
-from Nova2.app.shared_types import (
+from Nova2.app.interfaces import (
     LLMConditioningBase,
     MemoryConfigBase,
     MessageBase,
@@ -20,12 +20,14 @@ class LLMConditioning(LLMConditioningBase):
     def __init__(
                 self,
                 model: str,
+                inference_engine: str,
                 temperature: float = 1.0,
                 max_completion_tokens: int = 1024,
                 add_default_sys_prompt: bool = True,
                 **kwargs
                 ) -> None:
         self.model = model
+        self.inference_engine = inference_engine
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self.add_default_sys_prompt = add_default_sys_prompt

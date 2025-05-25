@@ -5,23 +5,20 @@ Description: Implements the main API.
 from pathlib import Path
 import logging
 import time
-from typing import Union
 
 from Nova2.app.tts_manager import TTSManager
 from Nova2.app.llm_manager import LLMManager
 from Nova2.app.audio_manager import AudioPlayer
-from Nova2.app.transcriptor import VoiceAnalysis
+from Nova2.app.stt_manager import VoiceAnalysis
 from Nova2.app.context_manager import ContextManager, ContextDatapoint
-from Nova2.app.inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
+from Nova2.inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
 from Nova2.app.security_manager import SecretsManager
 from Nova2.app.api_base import APIAbstract
 from Nova2.app.context_data import ContextSource_Assistant, ContextGenerator
 from Nova2.app.tool_manager import ToolManager
 from Nova2.app.security_data import Secrets
-from Nova2.app.shared_types import (
-    TranscriptorConditioningBase,
-    InferenceEngineLLMBase,
-    InferenceEngineTTSBase,
+from Nova2.app.interfaces import (
+    STTConditioningBase,
     LLMConditioningBase,
     TTSConditioningBase,
     LLMToolBase,
@@ -52,14 +49,14 @@ class NovaAPI(APIAbstract):
 
         logging.getLogger().setLevel(logging.CRITICAL)
 
-    def configure_transcriptor(self, conditioning: TranscriptorConditioningBase) -> None:
+    def configure_transcriptor(self, conditioning: STTConditioningBase) -> None:
         self._stt.configure(conditioning=conditioning) # type: ignore
 
-    def configure_llm(self, inference_engine: InferenceEngineLLMBase, conditioning: LLMConditioningBase) -> None:
-        self._llm.configure(inference_engine=inference_engine, conditioning=conditioning) # type: ignore
+    def configure_llm(self, conditioning: LLMConditioningBase) -> None:
+        self._llm.configure(conditioning=conditioning) # type: ignore
 
-    def configure_tts(self, inference_engine: InferenceEngineTTSBase, conditioning: TTSConditioningBase) -> None:
-        self._tts.configure(inference_engine=inference_engine, conditioning=conditioning) # type: ignore
+    def configure_tts(self, conditioning: TTSConditioningBase) -> None:
+        self._tts.configure(conditioning=conditioning) # type: ignore
 
     def apply_config_all(self) -> None:
         self._tts.apply_config()

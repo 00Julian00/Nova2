@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from Nova2.app.llm_data import Conversation, Message
 
-from Nova2.app.shared_types import (
+from Nova2.app.interfaces import (
     ContextSourceBase,
     ContextDatapointBase,
     ContextBase,

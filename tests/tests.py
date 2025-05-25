@@ -84,6 +84,7 @@ def run_tests():
             "*/__pycache__/*",
             "debug_runner.py",
             "run_tests.py"
+            "*/external/*"
         ]
     )
     cov.start()

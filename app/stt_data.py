@@ -2,14 +2,14 @@
 Description: Holds all data required to run the transcriptor.
 """
 
-from typing import Literal, Optional
+from typing import Optional
 from dataclasses import dataclass
 
 import torch
 
-from .shared_types import (
+from Nova2.app.interfaces import (
     WordBase,
-    TranscriptorConditioningBase
+    STTConditioningBase
 )
 
 @dataclass
@@ -20,11 +20,11 @@ class Word(WordBase):
     speaker_embedding: Optional[torch.Tensor] = None
 
 @dataclass
-class TranscriptorConditioning(TranscriptorConditioningBase):
+class STTConditioning(STTConditioningBase):
+    model: str
+    inference_engine: str
     microphone_index: int = 0
-    model: Literal["tiny", "base", "small", "medium", "large", "large-v2", "large-v3", "deepdml/faster-whisper-large-v3-turbo-ct2"] = "deepdml/faster-whisper-large-v3-turbo-ct2"
-    device: Literal["cpu", "cuda"] = "cuda"
+    device: str = "cuda"
     voice_boost: float = 10.0
-    language: Optional[str] = None
     vad_threshold: float = 0.95
     voice_similarity_threshold: float = 0.8

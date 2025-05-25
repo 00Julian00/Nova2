@@ -4,13 +4,13 @@ import warnings
 from elevenlabs.client import ElevenLabs
 from elevenlabs import Voice, VoiceSettings
 
-from Nova2.app.inference_engines.inference_tts.inference_base_tts import InferenceEngineBaseTTS
+from Nova2.app.interfaces import TTSInferenceEngineBase
 from Nova2.app.security_manager import SecretsManager
 from Nova2.app.security_data import Secrets
 from Nova2.app.tts_data import TTSConditioning
-from Nova2.app.helpers import deprecated
+from Nova2.app.audio_data import AudioData
 
-class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
+class InferenceEngineElevenlabs(TTSInferenceEngineBase):
     def __init__(self) -> None:
         """
         This class provides the interface to run inference via the elevenlabs API.
@@ -38,18 +38,14 @@ class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
     def is_model_ready(self) -> bool:
         return self._model != None
     
-    @deprecated(warning=f"Function 'get_current_model' is deprecated and will be removed in a future update. Use the property 'model' instead.")
-    def get_current_model(self) -> str:
-        return self._model
-    
     @property
-    def model(self) -> str | None:
+    def model(self) -> str:
         return self._model
     
     def free(self) -> None:
         self._model = ""
 
-    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> list[bytes]:
+    def run_inference(self, text: str, conditioning: TTSConditioning, stream: bool = False) -> AudioData: # type: ignore
         if stream:
             warnings.warn("Streaming is currently not supported by the Elevenlabs inference engine")
         
@@ -63,9 +59,11 @@ class InferenceEngineElevenlabs(InferenceEngineBaseTTS):
                                         )
                     )
         
-        return list(self._elevenlabs_client.generate(
+        data = self._elevenlabs_client.generate(
             text = text,
             voice=voice,
             model = self._model,
             stream = False
-        ))
+        )
+
+        return AudioData(list(data))

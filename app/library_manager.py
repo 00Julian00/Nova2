@@ -5,7 +5,9 @@ Description: This script is responsible for interaction with json files designat
 from pathlib import Path
 import json
 
-class LibraryManager:
+from Nova2.app.helpers import Singleton
+
+class LibraryManager(Singleton):
    def __init__(self) -> None:
        """
        This class is used to interact with libaries.
