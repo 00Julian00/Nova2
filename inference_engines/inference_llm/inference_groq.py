@@ -1,9 +1,10 @@
+import os
+
 import groq
 
 from Nova2.app.interfaces import LLMInferenceEngineBase
 from Nova2.app.tool_data import *
 from Nova2.app.security_manager import *
-from Nova2.app.security_data import Secrets
 from Nova2.app.llm_data import *
 
 class InferenceEngineGroq(LLMInferenceEngineBase):
@@ -20,7 +21,7 @@ class InferenceEngineGroq(LLMInferenceEngineBase):
         self.is_local = False
 
     def initialize_model(self, conditioning: LLMConditioning) -> None: # type: ignore
-        key = self._key_manager.get_secret(Secrets.GROQ_API)
+        key = os.getenv("GROQ_API_KEY")
 
         if not key:
             raise ValueError("Groq API key not found")

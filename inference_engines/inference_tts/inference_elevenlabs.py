@@ -1,3 +1,4 @@
+import os
 from typing import Literal
 import warnings
 
@@ -6,7 +7,6 @@ from elevenlabs import Voice, VoiceSettings
 
 from Nova2.app.interfaces import TTSInferenceEngineBase
 from Nova2.app.security_manager import SecretsManager
-from Nova2.app.security_data import Secrets
 from Nova2.app.tts_data import TTSConditioning
 from Nova2.app.audio_data import AudioData
 
@@ -24,7 +24,7 @@ class InferenceEngineElevenlabs(TTSInferenceEngineBase):
         self.is_local = False
 
     def initialize_model(self, model: Literal["eleven_multilingual_v2", "eleven_flash_v2_5", "eleven_turbo_v2_5"]) -> None:
-        key = self._key_manager.get_secret(Secrets.ELEVENLABS_API)
+        key = os.getenv("ELEVENLABS_API_KEY")
 
         if not key:
             raise ValueError("Elevenlabs API key not found")

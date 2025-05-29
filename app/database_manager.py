@@ -13,17 +13,9 @@ from transformers import AutoModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, Distance, VectorParams
 from qdrant_client.http import models
-from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
 from Nova2.app.helpers import suppress_output, Singleton
-
-# Database setup
-db_secrets_folder = Path(__file__).parent.parent / "db" / "db_secrets"
-db_secrets_folder.mkdir(parents=True, exist_ok=True)
-db_secrets_location = db_secrets_folder / "db_secrets.db"
-db_secrets_engine = create_engine(f"sqlite:///{db_secrets_location}", echo=False)
 
 base = declarative_base()
 
@@ -354,89 +346,3 @@ class VoiceDatabaseManager(Singleton):
 
     def _torch_tensor_to_float_list(self, embedding: torch.Tensor) -> list[float]:
         return embedding.squeeze().cpu().numpy().tolist()
-
-class SecretsDatabaseManager:
-    def __init__(self):
-        """
-        This class is used to store sensitive information like API keys.
-        """
-        self._prepare_database()
-
-    def add_secret(self, name: str, encrypted_key: str) -> None:
-        """
-        Add a new entry to the database.
-
-        Arguments:
-            name (str): The name of the secret.
-            encrypted_key(str): The secret itself. Will be stored in plain text in the database, so should be encrypted beforehand.
-        """
-        try:
-            new_secret = Secret(name=name, encrypted_key=encrypted_key)
-            self._session.add(new_secret)
-            self._session.commit()
-        except:
-            self._session.rollback()
-            raise Exception("Error when writing to database.")
-        
-    def get_secret(self, name: str) -> str | None:
-        """
-        Retrieve a secret from the database.
-
-        Arguments:
-            name (str): The name of the secret that should be retrieved.
-
-        Returns:
-            str | None: The secret or None if the secret could not be found.
-        """
-        secret = self._session.query(Secret).filter_by(name=name).first()
-
-        if secret:
-            return secret.encrypted_key # type: ignore
-        
-    def edit_secret(self, name: str, encrypted_key: str) -> None:
-        """
-        Modifies the value of a secret.
-
-        Arguments:
-            name (str): The name of the secret.
-            encrypted_key(str): The secret itself. Will be stored in plain text in the database, so should be encrypted beforehand.
-        """
-        secret = self._session.query(Secret).filter_by(name=name).first()
-
-        try:
-            if secret:
-                secret.encrypted_key = encrypted_key # type: ignore
-                self._session.commit()
-        except:
-            self._session.rollback()
-            raise Exception("Error when writing to database.")
-
-    def delete_secret(self, name: str) -> None:
-        """
-        Deletes a secret.
-
-        Arguments:
-            name (str): The name of the secret.
-        """
-        secret = self._session.query(Secret).filter_by(name=name).first()
-        
-        try:
-            if secret:
-                self._session.delete(secret)
-                self._session.commit()
-        except:
-            self._session.rollback()
-            raise Exception("Error when writing to database.")
-
-    def _prepare_database(self) -> None:
-        base.metadata.create_all(db_secrets_engine)
-        self._session_factory = sessionmaker(bind=db_secrets_engine)
-
-        self._session = self._session_factory()
-
-class Secret(base):
-    __tablename__ = "secrets"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    encrypted_key = Column(String)

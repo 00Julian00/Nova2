@@ -16,7 +16,6 @@ from Nova2.app.security_manager import SecretsManager
 from Nova2.app.api_base import APIAbstract
 from Nova2.app.context_data import ContextSource_Assistant, ContextGenerator
 from Nova2.app.tool_manager import ToolManager
-from Nova2.app.security_data import Secrets
 from Nova2.app.interfaces import (
     STTConditioningBase,
     LLMConditioningBase,
@@ -139,8 +138,5 @@ class NovaAPI(APIAbstract):
         eng = self._engine_manager.request_engine(name=engine, eng_type="TTS")
         eng.clone_voice(audio_dir=str(mp3file), name=name) # type: ignore
 
-    def huggingface_login(self, overwrite: bool = False, token: str = ""):
-        self._security.huggingface_login(overwrite=overwrite, token=token)
-
-    def edit_secret(self, name: Secrets, value: str) -> None:
-        self._security.edit_secret(name=name, key=value)
+    def huggingface_login(self):
+        self._security.huggingface_login()

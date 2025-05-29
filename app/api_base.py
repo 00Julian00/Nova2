@@ -193,13 +193,9 @@ class APIAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def huggingface_login(self, overwrite: bool = False, token: str = ""):
+    def huggingface_login(self):
         """
         Attempt to log into huggingface which is required to access restricted repos.
-        Should raise an exception if the login fails.
-
-        Arguments:
-            overwrite (bool): If true, "token" will overwrite the value stored in the database. If false, the database will remain unchanged and "token" will be used to attempt a login, if provided.
-            token (str): If provided, this token will be used to log in.
+        Should raise an exception if the login fails. Uses the credentials stored in the .env file.
         """
         raise NotImplementedError
