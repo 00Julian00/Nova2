@@ -53,20 +53,20 @@ class InferenceEngineElevenlabs(TTSInferenceEngineBase):
             warnings.warn("Streaming is currently not supported by the Elevenlabs inference engine")
         
         voice = Voice(
-                    voice_id=conditioning.voice,
-                    settings=VoiceSettings(
-                                        stability=conditioning.stability,
-                                        similarity_boost=conditioning.kwargs["similarity_boost"],
-                                        style=conditioning.expressivness,
-                                        use_speaker_boost=conditioning.kwargs["use_speaker_boost"]
-                                        )
-                    )
+            voice_id=conditioning.voice,
+            settings=VoiceSettings(
+                stability=conditioning.stability,
+                similarity_boost=conditioning.kwargs["similarity_boost"],
+                style=conditioning.expressivness,
+                use_speaker_boost=conditioning.kwargs["use_speaker_boost"]
+            )
+        )
         
         data = self._elevenlabs_client.generate(
-            text = text,
+            text=text,
             voice=voice,
-            model = self._model,
-            stream = False
+            model=self._model,
+            stream=False
         )
 
         return AudioData(list(data))

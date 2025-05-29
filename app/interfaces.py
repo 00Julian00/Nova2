@@ -291,7 +291,7 @@ class STTConditioningBase(ABC):
 
     Arguments:
         model (str): The model to use.
-        microphone_index (int): The index of the microphone to use for recording.
+        microphone_index (int): The index of the microphone to use for recording. Defaults to the default microphone.
         device (str): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
         voice_boost (float): How much to boost the voice in the audio preprocessing stage. Setting it to 0 disables this feature. Defaults to 10.0.
         vad_threshold (float): The confidence threshold of the voice-activity-detection model. Audio chunks above this threshold will be considered to contain speech.
