@@ -29,6 +29,7 @@ class LLMConditioning(LLMConditioningBase):
                 ) -> None:
         self.model = model
         self.inference_engine = inference_engine
+        self.filter_thinking_process = filter_thinking_process
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self.add_default_sys_prompt = add_default_sys_prompt

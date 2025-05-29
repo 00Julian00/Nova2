@@ -110,8 +110,22 @@ class LLMManager:
                     Message(author="system", content=f"Information that is potentially relevant to the conversation: {results}. This information was retrieved from the database.")
                     )
 
-        return self._inference_engine.run_inference(conversation=conv, tools=tools) # type: ignore
-    
+        response = self._inference_engine.run_inference(conversation=conv, tools=tools) # type: ignore
+
+        # Split at "</think>"
+        if self._conditioning.filter_thinking_process:
+            resp_clean = ""
+
+            split = response.message.split("</think>")
+            if len(split) > 1:
+                resp_clean = split[1]
+            else:
+                resp_clean = response.message
+
+            response.message = resp_clean.strip()
+
+        return response # type: ignore
+
     @staticmethod
     def count_tokens(text: str, model: str) -> int:
         tokenizer = AutoTokenizer.from_pretrained(model)
