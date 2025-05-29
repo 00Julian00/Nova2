@@ -292,6 +292,7 @@ class STTConditioningBase(ABC):
     Arguments:
         model (str): The model to use.
         microphone_index (int): The index of the microphone to use for recording. Defaults to the default microphone.
+        language (str): The language of the speech. If set to an empty string, the language will be detected automatically. It is recommended to set this to the language of the speech for better results if known.
         device (str): The device to use for the computations. Defaults to "cuda" or "cpu" if cuda is not available.
         voice_boost (float): How much to boost the voice in the audio preprocessing stage. Setting it to 0 disables this feature. Defaults to 10.0.
         vad_threshold (float): The confidence threshold of the voice-activity-detection model. Audio chunks above this threshold will be considered to contain speech.
@@ -316,13 +317,12 @@ class STTInferenceEngineBase(ABC):
         """
         raise NotImplementedError
     @abstractmethod
-    def run_inference(self, audio_data: ndarray | Tensor, language: str = "") -> list[WordBase]:
+    def run_inference(self, audio_data: ndarray | Tensor) -> list[WordBase]:
         """
         Transcribe audio data into a word array.
 
         Arguments:
             audio_data (ndarray | Tensor): The audio data to transcribe as a numpy array or a torch tensor.
-            language (str): What language the speech is in. Results in better transcriptions if set correctly. Leave as an empty string if the speech is in multiple languages or the language is unknown. Defaults to "".
 
         Returns:
             LLMResponse: The response from the LLM.

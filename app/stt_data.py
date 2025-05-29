@@ -24,6 +24,7 @@ class STTConditioning(STTConditioningBase):
     model: str
     inference_engine: str
     microphone_index: int = -1
+    language: str = ""
     device: str = "cuda"
     voice_boost: float = 10.0
     vad_threshold: float = 0.95

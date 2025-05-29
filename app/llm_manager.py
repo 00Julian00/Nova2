@@ -1,7 +1,6 @@
 """
 Description: This script manages interactions with LLMs.
 """
-
 from transformers import AutoTokenizer
 
 from Nova2.app.tool_data import LLMTool
