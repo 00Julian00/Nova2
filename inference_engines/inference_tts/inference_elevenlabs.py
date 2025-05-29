@@ -35,6 +35,9 @@ class InferenceEngineElevenlabs(TTSInferenceEngineBase):
 
         self._model = model
 
+    def clone_voice(self, audio_dir: str, name: str) -> None:
+        raise NotImplementedError("Cloning voices is not supported by the Elevenlabs inference engine. Please use the Elevenlabs web interface to clone voices.")
+
     def is_model_ready(self) -> bool:
         return self._model != None
     

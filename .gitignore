@@ -5,8 +5,8 @@ __pycache__/
 db/*
 !db/.gitkeep
 
-tools/debug_tool
-tools/debug_tool/*
+tools/internal_debug
+tools/internal_debug/*
 
 data/context.json
 

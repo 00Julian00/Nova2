@@ -57,7 +57,7 @@ class VoiceAnalysis:
             "STT"
             ) # type: ignore
         
-        self._inference_engine.initialize_model(self._conditioning.model) # type: ignore
+        self._inference_engine.initialize_model(self._conditioning) # type: ignore
 
         self._verbose = False
 

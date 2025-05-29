@@ -336,6 +336,8 @@ class LLMConditioningBase(ABC):
     Arguments:
         model (str): The model name. Must a valid huggingface repo ID.
         file (str): The file to use from that repo. Must be GGUF format.
+        inference_engine (str): The inference engine to use.
+        filter_thinking_process (bool): Wether to automatically remove the "thinking" part of an LLM response (essentially only using the response after the </think> token).
         temperature (float): The temperature to use for inference.
         max_completion_tokens (int): How many tokens the model is allowed to generate.
         add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
@@ -413,5 +415,16 @@ class TTSInferenceEngineBase(ABC):
 
         Returns:
             bytes: The audio data.
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def clone_voice(self, audio_dir: str, name: str) -> None:
+        """
+        Create a new voice embedding from a recording.
+
+        Arguments:
+            audio_dir (str): The directory of the audio file containing the voice.
+            name (str): The name under which the voice should be saved.
         """
         raise NotImplementedError

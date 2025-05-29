@@ -26,3 +26,4 @@ elevenlabs==1.50.3
 cryptography==42.0.2
 pydub==0.25.1
 openai==1.59.4
+docstring-parser==0.16

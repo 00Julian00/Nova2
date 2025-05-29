@@ -15,8 +15,17 @@ class ToolBaseClass:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        if '__init__' in cls.__dict__:
-            print(f"WARNING: {cls.__name__} overrides __init__, which may break Base behavior. Use 'on_startup' instead to run initialization logic.")
+
+        disallowed_overrides = [
+            "__init__",
+            "__get_subclasses__",
+            "tool",
+            "__get_tools__"
+        ]
+        
+        for method in disallowed_overrides:
+            if method in cls.__dict__:
+                raise TypeError(f"Tool class {cls.__name__} cannot override the method '{method}'. This is reserved for tool API functionality.")
 
     @classmethod
     def get_subclasses(cls) -> list[type]:
@@ -41,3 +50,26 @@ class ToolBaseClass:
         This method will be called when the tools is executed. Collect parameters and start tool logic here.
         """
         pass
+
+    @classmethod
+    def tool(cls, func):
+        """
+        Marks a function as a tool method.
+        """
+        func.__is_tool__ = True
+        return func
+    
+    def __get_tools__(self) -> list[callable]: # type: ignore
+        """
+        Returns all methods that are marked as tools.
+        
+        Returns:
+            list[callable]: The tool methods.
+        """
+        return [
+            getattr(self, name)
+            for name in dir(self)
+            if callable(getattr(self, name))
+            and hasattr(getattr(self, name), "__is_tool__")
+            and getattr(self, name).__is_tool__
+        ]

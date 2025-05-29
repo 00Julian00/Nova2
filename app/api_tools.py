@@ -12,7 +12,7 @@ from Nova2.app.audio_manager import AudioPlayer
 from Nova2.app.stt_manager import VoiceAnalysis
 from Nova2.app.context_manager import ContextManager
 from Nova2.app.context_data import ContextDatapoint, ContextSource_ToolResponse
-from Nova2.inference_engines.inference_tts.inference_zonos import InferenceEngineZonos
+from Nova2.app.inference_engine_manager import InferenceEngineManager
 from Nova2.app.security_manager import SecretsManager
 from Nova2.app.api_base import APIAbstract
 from Nova2.app.context_data import ContextGenerator
@@ -44,6 +44,7 @@ class NovaAPI(APIAbstract):
         self._context_data = ContextManager()
         self._player = AudioPlayer()
         self._security = SecretsManager()
+        self._engine_manager = InferenceEngineManager()
 
         logging.getLogger().setLevel(logging.CRITICAL)
 
@@ -111,9 +112,9 @@ class NovaAPI(APIAbstract):
     def is_playing_audio(self) -> bool:
         return self._player.is_playing()
     
-    def clone_voice(self, mp3file: Path, name: str) -> None:
-        zonos = InferenceEngineZonos()
-        zonos.clone_voice(audio_dir=str(mp3file), name=name)
+    def clone_voice(self, engine: str, mp3file: Path, name: str) -> None:
+        eng = self._engine_manager.request_engine(name=engine, eng_type="TTS")
+        eng.clone_voice(audio_dir=str(mp3file), name=name) # type: ignore
 
     def huggingface_login(self, overwrite: bool = False, token: str = ""):
         self._security.huggingface_login(overwrite=overwrite, token=token)

@@ -180,12 +180,13 @@ class APIAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def clone_voice(self, mp3file: Path, name: str) -> None:
+    def clone_voice(self, engine: str, mp3file: Path, name: str) -> None:
         """
         Clones a voice from an mp3 file and stores it (location determined by implementation).
         After cloning, it should be usable by a compatible TTS inference engine.
 
         Arguments:
+            engine (str): The name of the TTS inference engine that should be used to clone the voice.
             mp3file (Path): The mp3 file containing a few seconds of speech of the voice that will be cloned.
             name (str): What the voice should be called.
         """

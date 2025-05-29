@@ -37,13 +37,6 @@ class InferenceEngineZonos(TTSInferenceEngineBase):
         self._device = "cuda"
 
     def clone_voice(self, audio_dir: str, name: str) -> None:
-        """
-        Create a new voice embedding from a recording.
-
-        Arguments:
-            audio_dir (str): The directory of the audio file containing the voice.
-            name (str): The name under shich the voice should be saved.
-        """
         path = Path(audio_dir)
 
         if not path.exists():

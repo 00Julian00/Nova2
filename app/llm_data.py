@@ -21,6 +21,7 @@ class LLMConditioning(LLMConditioningBase):
                 self,
                 model: str,
                 inference_engine: str,
+                filter_thinking_process: bool = True,
                 temperature: float = 1.0,
                 max_completion_tokens: int = 1024,
                 add_default_sys_prompt: bool = True,

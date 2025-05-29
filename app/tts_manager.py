@@ -37,7 +37,7 @@ class TTSManager:
             "TTS"
             ) # type: ignore
 
-        self._inference_engine.initialize_model(self._conditioning.model) # type: ignore
+        self._inference_engine.initialize_model(self._conditioning) # type: ignore
 
     def run_inference(self, text: str) -> AudioData:
         """

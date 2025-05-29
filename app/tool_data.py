@@ -17,7 +17,7 @@ from Nova2.app.interfaces import (
 class LLMToolParameter(LLMToolParameterBase):
     name: str
     description: str
-    type: str
+    datatype: str
     required: bool
 
 @dataclass
@@ -34,7 +34,7 @@ class LLMTool(LLMToolBase):
         # Turn the parameters into a single properties object
         for param in self.parameters:
             properties[param.name] = {
-                "type": param.type,
+                "type": param.datatype,
                 "description": param.description
             }
             if param.required:
