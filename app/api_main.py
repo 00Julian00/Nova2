@@ -90,6 +90,18 @@ class NovaAPI(APIAbstract):
     def bind_context_source(self, source: ContextGeneratorBase) -> None:
         self._context.record_data(source) # type: ignore
 
+    def is_context_initialized(self) -> bool:
+        return self._context.is_context_initialized()
+
+    def set_active_context_file(self, file_name: str = "") -> None:
+        self._context.set_active_context_file(file_name=file_name)
+
+    def get_all_context_files(self) -> list[str]:
+        return self._context.get_all_context_files()
+
+    def get_active_context_file(self) -> str:
+        return self._context.get_active_context_file()
+
     def get_context(self) -> ContextBase:
         return self._context_data.get_context_data()
     

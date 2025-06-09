@@ -157,6 +157,48 @@ class APIAbstract(ABC):
         Adds a pre-constructed ContextDatapoint to the context.
         """
         raise NotImplementedError
+    
+    @abstractmethod
+    def set_active_context_file(self, file_name: str = "") -> None:
+        """
+        Changes the current context data to the one stored in the specified file.
+        Saves the currently active context data to the context file before changing.
+        
+        Arguments:
+            file_name (str): The name of the file to load the context data from (without the .ctx extension). Defaults to a random UUID.
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_active_context_file(self) -> str:
+        """
+        Returns the currently active context file.
+
+        Returns:
+            str: The path to the currently active context file.
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_all_context_files(self) -> list[str]:
+        """
+        Returns all context files in the context folder.
+
+        Returns:
+            list[str]: A list of all context files in the context folder.
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def is_context_initialized(self) -> bool:
+        """
+        Checks if a context file is set and initialized.
+        It is only possible to modify the context if it is initialized.
+
+        Returns:
+            bool: True if the context is initialized, False otherwise.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def play_audio(self, audio_data: AudioDataBase) -> None:

@@ -15,11 +15,7 @@ from Nova2.app.context_data import ContextDatapoint, ContextSource_ToolResponse
 from Nova2.app.inference_engine_manager import InferenceEngineManager
 from Nova2.app.security_manager import SecretsManager
 from Nova2.app.api_base import APIAbstract
-from Nova2.app.context_data import ContextGenerator
 from Nova2.app.interfaces import (
-    STTConditioningBase,
-    LLMConditioningBase,
-    TTSConditioningBase,
     LLMToolBase,
     LLMResponseBase,
     ContextBase,
@@ -27,7 +23,6 @@ from Nova2.app.interfaces import (
     ConversationBase,
     MemoryConfigBase,
     AudioDataBase,
-    ContextGeneratorBase,
 )
 
 class NovaAPI(APIAbstract):
@@ -42,55 +37,24 @@ class NovaAPI(APIAbstract):
         self._context = ContextManager()
         self._context_data = ContextManager()
         self._player = AudioPlayer()
-        self._security = SecretsManager()
-        self._engine_manager = InferenceEngineManager()
 
         logging.getLogger().setLevel(logging.CRITICAL)
-
-    def configure_transcriptor(self, conditioning: STTConditioningBase) -> None:
-        self._stt.configure(conditioning=conditioning) # type: ignore
-
-    def configure_llm(self, conditioning: LLMConditioningBase) -> None:
-        self._llm.configure(conditioning=conditioning) # type: ignore
-
-    def configure_tts(self, conditioning: TTSConditioningBase) -> None:
-        self._tts.configure(conditioning=conditioning) # type: ignore
-
-    def apply_config_all(self) -> None:
-        self._tts.apply_config()
-        self._llm.apply_config()
-        self._stt.apply_config()
-
-    def apply_config_llm(self) -> None:
-        self._llm.apply_config()
-
-    def apply_config_tts(self) -> None:
-        self._tts.apply_config()
-
-    def apply_config_transcriptor(self) -> None:
-        self._stt.apply_config()
 
     def run_llm(self, conversation: ConversationBase, memory_config: MemoryConfigBase = None, tools: list[LLMToolBase] = None, instruction: str = "") -> LLMResponseBase: # type: ignore
         return self._llm.prompt_llm(conversation=conversation, tools=tools, memory_config=memory_config, instruction=instruction) # type: ignore
 
     def run_tts(self, text: str) -> AudioDataBase:
         return self._tts.run_inference(text=text)
-
-    def start_transcriptor(self) -> ContextGeneratorBase:
-        return ContextGenerator(self._stt.start())
-
-    def bind_context_source(self, source: ContextGeneratorBase) -> None:
-        self._context.record_data(source) # type: ignore
+    
+    def is_context_initialized(self) -> bool:
+        return self._context.is_context_initialized()
+    
+    def get_active_context_file(self) -> str:
+        return self._context.get_active_context_file()
 
     def get_context(self) -> ContextBase:
         return self._context_data.get_context_data()
     
-    def set_context(self, context: ContextBase) -> None:
-        self._context_data._overwrite_context(context.data_points) # type: ignore
-    
-    def set_ctx_limit(self, ctx_limit: int) -> None:
-        self._context_data.ctx_limit = ctx_limit
-
     def add_to_context(self, name: str, content: str, tool_call_id: str) -> None: # type: ignore
         dp: ContextDatapoint = ContextDatapoint(
             source=ContextSource_ToolResponse(name=name, id=tool_call_id),
@@ -110,10 +74,3 @@ class NovaAPI(APIAbstract):
 
     def is_playing_audio(self) -> bool:
         return self._player.is_playing()
-    
-    def clone_voice(self, engine: str, mp3file: Path, name: str) -> None:
-        eng = self._engine_manager.request_engine(name=engine, eng_type="TTS")
-        eng.clone_voice(audio_dir=str(mp3file), name=name) # type: ignore
-
-    def huggingface_login(self):
-        self._security.huggingface_login()
