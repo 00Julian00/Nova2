@@ -98,6 +98,9 @@ class NovaAPI(APIAbstract):
 
     def get_all_context_files(self) -> list[str]:
         return self._context.get_all_context_files()
+    
+    def rename_context_file(self, old_name: str, new_name: str) -> None:
+        self._context.rename_context_file(old_name=old_name, new_name=new_name)
 
     def get_active_context_file(self) -> str:
         return self._context.get_active_context_file()

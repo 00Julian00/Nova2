@@ -190,6 +190,17 @@ class APIAbstract(ABC):
         raise NotImplementedError
     
     @abstractmethod
+    def rename_context_file(self, old_name: str, new_name: str) -> None:
+        """
+        Renames the currently active context file.
+
+        Arguments:
+            old_name (str): The current name of the context file (without the .ctx extension).
+            new_name (str): The new name for the context file (without the .ctx extension).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def is_context_initialized(self) -> bool:
         """
         Checks if a context file is set and initialized.
