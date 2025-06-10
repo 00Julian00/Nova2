@@ -8,13 +8,13 @@ import threading
 import time
 from typing import Generator
 
-from Nova2.app import helpers
+from Nova2.app.helpers import suppress_output, is_configured
 
 import numpy as np
 import sounddevice as sd
 import torch
 import torch.nn.functional as F
-with helpers.suppress_output():
+with suppress_output():
     from speechbrain.inference.speaker import EncoderClassifier
 import silero_vad
 
@@ -42,6 +42,8 @@ class VoiceAnalysis:
         self._inference_engine_manager = InferenceEngineManager()
 
     def configure(self, conditioning: STTConditioning):
+        if not self._conditioning_dirty:
+            raise Exception("Failed to initialize TTS. No TTS conditioning provided.")
         self._conditioning_dirty = conditioning
 
     def apply_config(self) -> None:
@@ -67,7 +69,7 @@ class VoiceAnalysis:
         
         self._vad_model = silero_vad.load_silero_vad()
 
-        with helpers.suppress_output():
+        with suppress_output():
             self._speaker_embedding_model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb", run_opts={"device": self._device})
 
         self._microphone_index = self._conditioning.microphone_index
@@ -143,6 +145,7 @@ class VoiceAnalysis:
         except RuntimeError as e:
             raise Exception(f"Failed to generate speaker embedding: {e}")
 
+    @is_configured
     def start(self) -> Generator[ContextDatapoint, None, None]:
         """
         Generator for live voice analysis.
@@ -213,7 +216,7 @@ class VoiceAnalysis:
                         self._locked_words = 0
 
                         # Construct the context datapoint
-                        voice = self.resolve_speaker(words=confirmed_transcription)
+                        voice = self._resolve_speaker(words=confirmed_transcription)
                         datapoint = ContextDatapoint(
                             source=ContextSource_Voice(speaker=voice),
                             content=VoiceProcessingHelpers.word_array_to_string(confirmed_transcription)
@@ -221,7 +224,7 @@ class VoiceAnalysis:
                         
                         yield datapoint
 
-    def resolve_speaker(self, words: list[Word]) -> str:
+    def _resolve_speaker(self, words: list[Word]) -> str:
         """
         Finds the name of the current speaker 
         """
@@ -239,7 +242,8 @@ class VoiceAnalysis:
             voice_name = self._voice_database_manager.create_unknown_voice(avg_embedding)
 
         return voice_name
-        
+    
+    @is_configured
     def close(self) -> None:
         """
         Ends the execution of this script. No more data will be yielded by the generator.
@@ -256,10 +260,6 @@ class VoiceAnalysis:
         audio_data = audio_data[:, start_sample:end_sample]
 
         return audio_data
-    
-    def _log(self, text: str) -> None: # Used to print debug information if verbose is set to True. Reduces if statements in the code.
-        if self._verbose:
-            print(text)
 
 class VoiceProcessingHelpers:
     def __init__(self):

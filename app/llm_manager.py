@@ -10,6 +10,7 @@ from Nova2.app.llm_data import LLMConditioning, LLMResponse, Conversation, Memor
 from Nova2.app.context_data import Context
 from Nova2.app.library_manager import LibraryManager
 from Nova2.app.inference_engine_manager import InferenceEngineManager
+from Nova2.app.helpers import is_configured
 
 class LLMManager:
     def __init__(self) -> None:
@@ -26,6 +27,8 @@ class LLMManager:
         """
         Configure the LLM system.
         """
+        if not self._conditioning_dirty:
+            raise Exception("Failed to initialize TTS. No TTS conditioning provided.")
         self._conditioning_dirty = conditioning
 
     def apply_config(self) -> None:
@@ -44,6 +47,7 @@ class LLMManager:
 
         self._inference_engine.initialize_model(self._conditioning)
 
+    @is_configured
     def prompt_llm(
                 self,
                 conversation: Conversation | Context,
@@ -56,10 +60,10 @@ class LLMManager:
 
         Arguments:
             instruction (str | None): Instruction is added as a system prompt.
-            conversation (Conversation | Context): The conversation that the LLM will base its response on. Can be tyoe Conversation or type Context.
+            conversation (Conversation | Context): The conversation that the LLM will base its response on. Can be type Conversation or type Context.
             tools (list[LLMTool] | None): The tools the LLM has access to.
             model (str): The model that should be used for inference.
-            perform_rag (bool): Wether to search for addidtional data in the memory database based on the newest user message.
+            perform_rag (bool): Wether to search for additional data in the memory database based on the newest user message.
 
         Returns:
             LLMResponse: The response of the LLM. Also includes tool calls.
