@@ -155,3 +155,7 @@ class NovaAPI(APIAbstract):
 
     def huggingface_login(self):
         self._security.huggingface_login()
+
+    def stay_alive(self, condition: bool = True) -> None:
+        while condition:
+            time.sleep(0.1) # Don't block the GIL

@@ -8,7 +8,7 @@ db/*
 tools/internal_debug
 tools/internal_debug/*
 
-data/context.json
+data/context/debug_ctx.ctx
 
 debug_runner.py
 

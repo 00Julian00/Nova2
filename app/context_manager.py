@@ -67,6 +67,7 @@ class ContextManager(Singleton):
         while self._context_file != "":
             datapoint = self.source_list.get_next()
             if not datapoint:
+                time.sleep(0.1)
                 continue
 
             self.add_to_context(datapoint=datapoint)
@@ -114,10 +115,10 @@ class ContextManager(Singleton):
         Saves the context data to the context.json file.
         """
         if self.context_data != self._previous_context_data:
-            with open(self._context_file, 'w') as file:
+            with open(str(self._context_file), 'w') as file:
                 json.dump(self.context_data, file, indent=4)
 
-        self._previous_context_data = self.context_data
+            self._previous_context_data = self.context_data
 
     def set_active_context_file(self, file_name: str = str(uuid4())) -> None:
         """
@@ -127,10 +128,11 @@ class ContextManager(Singleton):
         Arguments:
             file_name (str): The name of the file to load the context data from (without the .ctx extension). Defaults to a random UUID.
         """
-        self.save_context_data()
-        self._context_file = "" # Prompt running threads to stop
-        self._saving_thread.join()
-        self._context_recording_thread.join()
+        if self._context_file != "":
+            self.save_context_data()
+            self._context_file = "" # Prompt running threads to stop
+            self._saving_thread.join()
+            self._context_recording_thread.join()
 
         self._context_file = self._context_folder / f"{file_name}.ctx"
 
@@ -251,11 +253,7 @@ class ContextManager(Singleton):
         Returns:
             list[dict]: The contents of the context.json file.
         """
-        if not self._context_file.exists(): # type: ignore
-            with open(self._context_file, 'w') as file:
-                json.dump([], file)
-
-        with open(self._context_file, 'r') as file:
+        with open(str(self._context_file), 'r') as file:
             context_data = json.load(file)
 
         self._saving_thread.start()

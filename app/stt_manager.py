@@ -127,11 +127,9 @@ class VoiceAnalysis:
         
         return self._current_sentence, self._locked_words
     
-    def _generate_speaker_embedding(self, audio_data: torch.Tensor, start: float, end: float) -> torch.Tensor:
+    def _generate_speaker_embedding(self, audio_data: torch.Tensor) -> torch.Tensor:
         if audio_data.ndim == 1:
             audio_data = audio_data.unsqueeze(0)
-
-        audio_data = self._split_audio_by_timestamps(audio_data=audio_data, start=start, end=end)
 
         # Ensure the audio segment is long enough (at least 1 second)
         min_length = SAMPLE_RATE  # 1 second at 16000 Hz
@@ -143,7 +141,7 @@ class VoiceAnalysis:
         try:
             return self._speaker_embedding_model.encode_batch(audio_data) # type: ignore
         except RuntimeError as e:
-            return torch.zeros(1, 512, device=self._device)  # Return a zero embedding as a fallback
+            raise Exception(f"Failed to generate speaker embedding: {e}")
 
     def start(self) -> Generator[ContextDatapoint, None, None]:
         """
@@ -161,10 +159,7 @@ class VoiceAnalysis:
         current_audio_data = None
         first_audio_chunk = None
         silence_counter = 0
-
-        confirmed_transcription = ""
-        speculative_transcription = ""
-
+        
         while self._is_recording:
             if not self._audio_queue.empty():
                 audio_chunk = self._audio_queue.get()
@@ -197,10 +192,9 @@ class VoiceAnalysis:
 
                 self._current_sentence, self._locked_words = self._update_transcription(transcription) # type: ignore
 
-                confirmed_transcription = []
-                speculative_transcription = []
+                confirmed_transcription: list[Word] = []
+                speculative_transcription: list[Word] = []
                 for i, word in enumerate(self._current_sentence):
-                    self._current_sentence[i].speaker_embedding = self._generate_speaker_embedding(audio_tensor, self._current_sentence[i].start, self._current_sentence[i].end)
                     if i < self._locked_words:
                         confirmed_transcription.append(word)
 
@@ -209,6 +203,11 @@ class VoiceAnalysis:
                 # Sentence is finished
                 if len(confirmed_transcription) > 0:
                     if "." in confirmed_transcription[len(confirmed_transcription) - 1].text or "!" in confirmed_transcription[len(confirmed_transcription) - 1].text or "?" in confirmed_transcription[len(confirmed_transcription) - 1].text:
+                        # Generate embedding and assign to all words
+                        speaker_embedding = self._generate_speaker_embedding(audio_tensor)
+                        for word in confirmed_transcription:
+                            word.speaker_embedding = speaker_embedding
+                        
                         current_audio_data = None
                         self._current_sentence = []
                         self._locked_words = 0

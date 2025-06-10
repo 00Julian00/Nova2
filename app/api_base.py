@@ -252,3 +252,15 @@ class APIAbstract(ABC):
         Should raise an exception if the login fails. Uses the credentials stored in the .env file.
         """
         raise NotImplementedError
+    
+    @abstractmethod
+    def stay_alive(self, condition: bool = True) -> None:
+        """
+        Keeps the application running until the condition is False.
+        This is useful, because none of the internal logic of Nova2 inherently
+        keeps the program alive.
+
+        Arguments:
+            condition (bool): The application will stay alive, as long as this is True. It is recommended to parse a lambda expression. Defaults to True.
+        """
+        raise NotImplementedError
