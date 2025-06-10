@@ -26,7 +26,6 @@ class STTConditioning(STTConditioningBase):
     microphone_index: int = -1
     language: str = ""
     device: str = "cuda"
-    voice_boost: float = 10.0
     vad_threshold: float = 0.95
     voice_similarity_threshold: float = 0.8
 

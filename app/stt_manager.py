@@ -14,8 +14,6 @@ import numpy as np
 import sounddevice as sd
 import torch
 import torch.nn.functional as F
-from denoiser import pretrained
-from denoiser.dsp import convert_audio
 with helpers.suppress_output():
     from speechbrain.inference.speaker import EncoderClassifier
 import silero_vad
@@ -67,11 +65,6 @@ class VoiceAnalysis:
             
         torch.set_default_dtype(torch.float32)
         
-        if self._conditioning.voice_boost != 0.0:
-            self._denoise_model = pretrained.dns64()
-            self._denoise_model.eval()
-            self._denoise_model = self._denoise_model.to(self._device)
-        
         self._vad_model = silero_vad.load_silero_vad()
 
         with helpers.suppress_output():
@@ -83,7 +76,6 @@ class VoiceAnalysis:
         self._locked_words = 0
         self._audio_queue = queue.Queue()
         self._is_recording = True
-        self._voice_boost = self._conditioning.voice_boost
         self._speculative = False
         self._recording_thread = threading.Thread(target=self._record_audio)
 
@@ -109,25 +101,6 @@ class VoiceAnalysis:
 
         if len(audio_buffer) > 0:
             self._audio_queue.put(audio_buffer)
-
-    def _boost_speech(self, audio_data: torch.FloatTensor) -> torch.FloatTensor:
-        if self._voice_boost == 0.0:
-            return audio_data
-
-        audio_tensor = torch.from_numpy(audio_data).float().to(self._device)
-        audio_tensor = audio_tensor.unsqueeze(0)
-        audio = convert_audio(audio_tensor, SAMPLE_RATE, self._denoise_model.sample_rate, self._denoise_model.chin)
-
-        with torch.no_grad():
-            denoised = self._denoise_model(audio)[0]
-
-        denoised = denoised * self._voice_boost
-        audio_tensor = audio_tensor + denoised
-        audio_tensor = audio_tensor / audio_tensor.abs().max()
-        audio_tensor = audio_tensor.squeeze(0)
-        audio_tensor = audio_tensor.cpu()
-
-        return audio_tensor.numpy()
 
     def _detect_voice_activity(self, audio_chunk: torch.FloatTensor) -> bool:        
         timestamps = silero_vad.get_speech_timestamps(
@@ -195,7 +168,6 @@ class VoiceAnalysis:
         while self._is_recording:
             if not self._audio_queue.empty():
                 audio_chunk = self._audio_queue.get()
-                audio_chunk = self._boost_speech(audio_chunk)
                 speech_detected = self._detect_voice_activity(audio_chunk)
                 if current_audio_data is None:
                     if not speech_detected:
