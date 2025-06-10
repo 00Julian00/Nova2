@@ -317,12 +317,12 @@ class STTInferenceEngineBase(ABC):
         """
         raise NotImplementedError
     @abstractmethod
-    def run_inference(self, audio_data: ndarray | Tensor) -> list[WordBase]:
+    def run_inference(self, audio_data: Tensor) -> list[WordBase]:
         """
         Transcribe audio data into a word array.
 
         Arguments:
-            audio_data (ndarray | Tensor): The audio data to transcribe as a numpy array or a torch tensor.
+            audio_data (Tensor): The audio data to transcribe as a torch tensor.
 
         Returns:
             LLMResponse: The response from the LLM.

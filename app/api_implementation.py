@@ -58,6 +58,18 @@ class NovaAPI(APIAbstract):
     def configure_tts(self, conditioning: TTSConditioningBase) -> None:
         self._tts.configure(conditioning=conditioning) # type: ignore
 
+    def configure_transcriptor_and_apply(self, conditioning: STTConditioningBase) -> None:
+        self.configure_transcriptor(conditioning=conditioning)
+        self.apply_config_transcriptor()
+
+    def configure_llm_and_apply(self, conditioning: LLMConditioningBase) -> None:
+        self.configure_llm(conditioning=conditioning)
+        self.apply_config_llm()
+
+    def configure_tts_and_apply(self, conditioning: TTSConditioningBase) -> None:
+        self.configure_tts(conditioning=conditioning)
+        self.apply_config_tts()
+
     def apply_config_all(self) -> None:
         self._tts.apply_config()
         self._llm.apply_config()

@@ -34,9 +34,8 @@ class InferenceEngineFasterWhisper(STTInferenceEngineBase):
             cpu_threads=cpu_cores
             )
         
-    def run_inference(self, audio_data: ndarray | Tensor) -> list[WordBase]:
-        if type(audio_data) == Tensor:
-            audio_data = audio_data.cpu().numpy()
+    def run_inference(self, audio_data: Tensor) -> list[WordBase]:
+        audio_data = audio_data.cpu().numpy() # type: ignore
 
         if self._conditioning.language != "":
             segments, info = self._model.transcribe(audio_data, beam_size=5, language=self._conditioning.language, condition_on_previous_text=False, word_timestamps=True) # type: ignore

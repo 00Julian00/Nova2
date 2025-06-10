@@ -41,6 +41,27 @@ class APIAbstract(ABC):
         Configure the Text-to-Speech system.
         """
         raise NotImplementedError
+    
+    @abstractmethod
+    def configure_transcriptor_and_apply(self, conditioning: STTConditioningBase) -> None:
+        """
+        Configure the transcriptor and apply the configuration.
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def configure_llm_and_apply(self, conditioning: LLMConditioningBase) -> None:
+        """
+        Configure the LLM system and apply the configuration.
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def configure_tts_and_apply(self, conditioning: TTSConditioningBase) -> None:
+        """
+        Configure the Text-to-Speech system and apply the configuration.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def apply_config_all(self) -> None:
