@@ -15,7 +15,6 @@ from Nova2.app.inference_engine_manager import InferenceEngineManager
 from Nova2.app.security_manager import SecretsManager
 from Nova2.app.api_base import APIAbstract
 from Nova2.app.context_data import ContextSource_Assistant, ContextGenerator
-from Nova2.app.tool_manager import ToolManager
 from Nova2.app.interfaces import (
     STTConditioningBase,
     LLMConditioningBase,
@@ -43,13 +42,12 @@ class NovaAPI(APIAbstract):
         self._context = ContextManager()
         self._context_data = ContextManager()
         self._player = AudioPlayer()
-        self._tools = ToolManager()
         self._security = SecretsManager()
         self._engine_manager = InferenceEngineManager()
 
         logging.getLogger().setLevel(logging.CRITICAL)
 
-    def configure_transcriptor(self, conditioning: STTConditioningBase) -> None:
+    def configure_stt(self, conditioning: STTConditioningBase) -> None:
         self._stt.configure(conditioning=conditioning) # type: ignore
 
     def configure_llm(self, conditioning: LLMConditioningBase) -> None:
@@ -58,9 +56,9 @@ class NovaAPI(APIAbstract):
     def configure_tts(self, conditioning: TTSConditioningBase) -> None:
         self._tts.configure(conditioning=conditioning) # type: ignore
 
-    def configure_transcriptor_and_apply(self, conditioning: STTConditioningBase) -> None:
-        self.configure_transcriptor(conditioning=conditioning)
-        self.apply_config_transcriptor()
+    def configure_stt_and_apply(self, conditioning: STTConditioningBase) -> None:
+        self.configure_stt(conditioning=conditioning)
+        self.apply_config_stt()
 
     def configure_llm_and_apply(self, conditioning: LLMConditioningBase) -> None:
         self.configure_llm(conditioning=conditioning)
@@ -81,7 +79,7 @@ class NovaAPI(APIAbstract):
     def apply_config_tts(self) -> None:
         self._tts.apply_config()
 
-    def apply_config_transcriptor(self) -> None:
+    def apply_config_stt(self) -> None:
         self._stt.apply_config()
 
     def load_tools(self, load_internal_tools: bool = True, **kwargs) -> list[LLMToolBase]:
@@ -96,7 +94,7 @@ class NovaAPI(APIAbstract):
     def run_tts(self, text: str) -> AudioDataBase:
         return self._tts.run_inference(text=text)
 
-    def start_transcriptor(self) -> ContextGeneratorBase:
+    def start_stt(self) -> ContextGeneratorBase:
         return ContextGenerator(self._stt.start())
 
     def bind_context_source(self, source: ContextGeneratorBase) -> None:

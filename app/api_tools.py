@@ -5,7 +5,7 @@ from Nova2.app.context_manager import ContextManager
 from Nova2.app.context_data import ContextDatapoint, ContextSource_ToolResponse
 from Nova2.app.api_implementation import NovaAPI as APIImpl
 
-class NovaAPI(APIImpl):
+class ToolAPI(APIImpl):
     """
     Primary API to interact with the Nova system.
     """

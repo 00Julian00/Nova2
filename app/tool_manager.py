@@ -14,7 +14,7 @@ from Nova2.app.context_manager import ContextManager
 from Nova2.app.context_data import ContextDatapoint, ContextSource_System
 from Nova2.app.library_manager import LibraryManager
 from Nova2.app.helpers import Singleton
-from Nova2.app.api_tools import NovaAPI
+from Nova2.app.api_tools import ToolAPI
 from Nova2.tool_api.tool_api import ToolBaseClass
 
 class ToolManager(Singleton):
@@ -23,7 +23,7 @@ class ToolManager(Singleton):
         This class manages the internal and external tools, as well as their execution.
         """
         self._loaded_tools: list[LLMTool] = []
-        self._tool_api_instance = NovaAPI()
+        self._tool_api_instance = ToolAPI()
         self._lib_manager = LibraryManager()
     
     def _dtype_mapper(self, type_: str) -> str:

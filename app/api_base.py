@@ -22,9 +22,9 @@ from Nova2.app.interfaces import (
 
 class APIAbstract(ABC):
     @abstractmethod
-    def configure_transcriptor(self, conditioning: STTConditioningBase) -> None:
+    def configure_stt(self, conditioning: STTConditioningBase) -> None:
         """
-        Configure the transcriptor.
+        Configure the Speech-to-Text system.
         """
         raise NotImplementedError
 
@@ -43,9 +43,9 @@ class APIAbstract(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def configure_transcriptor_and_apply(self, conditioning: STTConditioningBase) -> None:
+    def configure_stt_and_apply(self, conditioning: STTConditioningBase) -> None:
         """
-        Configure the transcriptor and apply the configuration.
+        Configure the Speech-to-Text system and apply the configuration.
         """
         raise NotImplementedError
     
@@ -85,9 +85,9 @@ class APIAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def apply_config_transcriptor(self) -> None:
+    def apply_config_stt(self) -> None:
         """
-        Updates the configuration of the trabscriptor system. Also loads the chosen models into memory.
+        Updates the configuration of the Speech-to-Text system. Also loads the chosen models into memory.
         """
         raise NotImplementedError
 
@@ -98,7 +98,7 @@ class APIAbstract(ABC):
 
         Arguments:
             conversation (Conversation): A conversation to use. Can be retrieved from context.
-            memory_config (MemoryConfig): How should memories be retieved? If none is provided, no memories will be retrieved.
+            memory_config (MemoryConfig): How should memories be retrieved? If none is provided, no memories will be retrieved.
             tools (list[LLMTool]): A list of tools the LLM can access.
             instruction (str): An additional instruction to give to the LLM.
 
@@ -121,19 +121,19 @@ class APIAbstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def start_transcriptor(self) -> ContextGeneratorBase:
+    def start_stt(self) -> ContextGeneratorBase:
         """
-        Start the transcriptor. The transcriptor will start to listen to the microphone audio.
+        Start the Speech-to-Text system. The system will start to listen to the microphone audio.
 
         Returns:
-            ContextGenerator: An object yielding context data from the transcriptor.
+            ContextGenerator: An object yielding context data from the Speech-to-Text system.
         """
         raise NotImplementedError
 
     @abstractmethod
     def bind_context_source(self, source: ContextGeneratorBase) -> None:
         """
-        Bind a context source. The data of a context source will only be recorded after beeing bound.
+        Bind a context source. The data of a context source will only be recorded after being bound.
         """
         raise NotImplementedError
 
@@ -155,7 +155,7 @@ class APIAbstract(ABC):
     def set_ctx_limit(self, ctx_limit: int) -> None:
         """
         Limit how many datapoints will be stored in context. This does not include memory.
-        Setting it to 0 will impose no limit, but the context will surraise NotImplementedError the LLMs context window at some point.
+        Setting it to 0 will impose no limit, but the context will surpass the LLM's context window at some point.
         Limit is 25 by default.
         """
         raise NotImplementedError
