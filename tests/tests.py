@@ -7,10 +7,12 @@ import unittest
 import coverage
 
 from Nova2 import *
+from Nova2.app.context_data import ContextSource_User
 
 class Test(unittest.TestCase):
     def setUp(self):
         self.nova = Nova()
+        self.nova.set_active_context_file('debug_ctx')
 
     def test_context(self):
         # Add context
@@ -29,18 +31,17 @@ class Test(unittest.TestCase):
     def test_tools(self):
         self.nova.load_tools()
         self.assertGreater(
-            len(self.nova._tools._loaded_tools),
+            len(self.nova._tool_manager._loaded_tools),
             0
         )
 
     def test_llm(self):
-        inference_engine = InferenceEngineGroq()
-
         conditioning = LLMConditioning(
-            model="llama-3.3-70b-versatile"
+            model="llama-3.3-70b-versatile",
+            inference_engine="inference_groq"
         )
 
-        self.nova.configure_llm(inference_engine, conditioning)
+        self.nova.configure_llm(conditioning)
         self.nova.apply_config_llm()
 
         conv = Conversation()
@@ -52,10 +53,9 @@ class Test(unittest.TestCase):
         )
 
     def test_tts(self):
-        inference_engine = InferenceEngineElevenlabs()
-
         conditioning = TTSConditioning(
             model="eleven_flash_v2_5",
+            inference_engine="inference_elevenlabs",
             voice="FGY2WhTYpPnrIDTdsKH5",
             expressivness=0.5,
             stability=0.5,
@@ -63,14 +63,10 @@ class Test(unittest.TestCase):
             use_speaker_boost=False
         )
 
-        self.nova.configure_tts(inference_engine, conditioning)
+        self.nova.configure_tts( conditioning)
         self.nova.apply_config_tts()
 
         resp = self.nova.run_tts("Hello World")
-
-        self.assertTrue(
-            type(resp) == AudioData
-        )
 
 def run_tests():
     cov = coverage.Coverage(

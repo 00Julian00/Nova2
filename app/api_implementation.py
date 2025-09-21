@@ -15,6 +15,7 @@ from Nova2.app.inference_engine_manager import InferenceEngineManager
 from Nova2.app.security_manager import SecretsManager
 from Nova2.app.api_base import APIAbstract
 from Nova2.app.context_data import ContextSource_Assistant, ContextGenerator
+from Nova2.app.tool_manager import ToolManager
 from Nova2.app.interfaces import (
     STTConditioningBase,
     LLMConditioningBase,
@@ -44,6 +45,7 @@ class NovaAPI(APIAbstract):
         self._player = AudioPlayer()
         self._security = SecretsManager()
         self._engine_manager = InferenceEngineManager()
+        self._tool_manager = ToolManager()
 
         logging.getLogger().setLevel(logging.CRITICAL)
 
@@ -83,10 +85,10 @@ class NovaAPI(APIAbstract):
         self._stt.apply_config()
 
     def load_tools(self, load_internal_tools: bool = True, **kwargs) -> list[LLMToolBase]:
-        return self._tools.load_tools(load_internal=load_internal_tools, **kwargs) # type: ignore
+        return self._tool_manager.load_tools(load_internal=load_internal_tools, **kwargs) # type: ignore
     
     def execute_tool_calls(self, llm_response: LLMResponseBase) -> None:
-        self._tools.execute_tool_call(tool_calls=llm_response.tool_calls) # type: ignore
+        self._tool_manager.execute_tool_call(tool_calls=llm_response.tool_calls) # type: ignore
 
     def run_llm(self, conversation: ConversationBase, memory_config: MemoryConfigBase = None, tools: list[LLMToolBase] = None, instruction: str = "") -> LLMResponseBase: # type: ignore
         return self._llm.prompt_llm(conversation=conversation, tools=tools, memory_config=memory_config, instruction=instruction) # type: ignore
