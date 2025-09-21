@@ -105,7 +105,6 @@ Nova uses 2 different database libraries:
 The transcriptor combines several AI models and frameworks into its audio-preprocessing and transcription pipeline:
 - [Whisper](https://openai.com/index/whisper/) developed by OpenAI is a Speech-to-Text model that can turn spoken language into text. The transcriptor uses a special approach for transcribing with whisper to allow for streaming transcriptions inspired by [this](https://www.youtube.com/watch?v=_spinzpEeFM) video.
 - [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) is an inference engine for whisper that greatly increases inference speed over OpenAI's implementation by utilizing [CTranslate2](https://github.com/OpenNMT/CTranslate2/).
-- [Denoiser](https://github.com/facebookresearch/denoiser) developed by Meta is a library that attempts to remove noise in the given audio data. The transcriptor uses it to boost the volume of speech compared to other noises in the given audio data.
 - [Silero VAD](https://github.com/snakers4/silero-vad) is a voice activity detection library. It is used to detect speech in the audio data to filter out audio chunks.
 - [Speechbrain](https://github.com/speechbrain/speechbrain?tab=readme-ov-file) is a library that is used to compute the speaker embeddings.
 
@@ -140,4 +139,4 @@ Tests are performed using the `unittest` and `coverage` libraries.
 If you find Nova useful for your work or projects, consider [buying me a coffee](https://buymeacoffee.com/00julian00). Your support helps maintain and improve this open-source project.
 
 ## License
-Nova is released under the [GNU General Public License v3.0 (GPL-3.0)](https://www.gnu.org/licenses/gpl-3.0.en.html).
+Nova is released under the [MIT License](https://opensource.org/license/mit).

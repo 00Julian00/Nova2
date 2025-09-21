@@ -46,9 +46,6 @@ class ContextManager(Singleton):
 
         self.ctx_limit = 25
 
-        # Save the context data to the disk when the program is terminated
-        atexit.register(self.save_context_data)
-
         self._saving_thread = Thread(target=self._periodic_save, daemon=True)
         self._context_recording_thread = Thread(target=self._record_context, daemon=True)
 
@@ -137,6 +134,9 @@ class ContextManager(Singleton):
         self._context_file = self._context_folder / f"{file_name}.ctx"
 
         self.context_data = self._prepare_context_data()
+
+        # Save the context data to the disk when the program is terminated
+        # atexit.register(self.save_context_data)
 
     def get_active_context_file(self) -> str:
         """
