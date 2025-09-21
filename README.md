@@ -1,9 +1,9 @@
 # NOVA: Next-Generation Open-Source Virtual Assistant
-### A Python framework for building AI assistants with minimal code. Integrates LLMs, Text-to-Speech, voice recognition, and long-term memory into a cohesive, easy-to-use system.
+### A Python SDK for building AI assistants with minimal code. Integrates LLMs, Text-to-Speech, voice recognition, and long-term memory into a cohesive, easy-to-use system.
 
-## You are looking at a development branch for the Version 2.0.0. This branch might contain unstable code, as well as incomplete features and outdated documentation. This branch should not be used for production.
+## This project will not receive further updates for the foreseeable future, since it stands in direct competition to other open source projects, like [LangGraph](https://github.com/langchain-ai/langgraph) or [N8N](https://github.com/n8n-io/n8n). I recommend using one of those projects instead, as they have a much larger community and are backed by much larger teams and resources. I am willing to continue this project, if there is enough interest in it. You can show your interest by opening issues and pull requests. This project will remain online and open-source, and I recommend it for educational purposes, if you want to learn more about how to work with LLMs. Thank you for your understanding.
 
-Version 1.1.0 [Changelog](CHANGELOG.md)
+Version 2.0.0 [Changelog](CHANGELOG.md)
 
 ## Table of contents:
 1. [Introduction](#introduction)
@@ -11,14 +11,13 @@ Version 1.1.0 [Changelog](CHANGELOG.md)
 3. [Features](#features)
 4. [Technologies used](#technologies-used)
 5. [Project structure](#project-structure)
-6. [Roadmap](#roadmap)
 
 ## Introduction
 Nova2 started out as a rewrite to my [original Nova project](https://github.com/00Julian00/Nova), which is no longer being maintained.
 
 What is Nova?  
   
-Nova is an AI assistant building framework that aims to combine several technologies into one cohesive, uniform and easy to use interface, allowing developers to develop a fully working AI assistant in just a few lines of code.  
+Nova is an AI assistant building sdk that aims to combine several technologies into one cohesive, uniform and easy to use interface, allowing developers to develop a fully working AI assistant in just a few lines of code.  
 Nova is modular and easily extendable, allowing you to easily modify it to fit your needs. The complexities of LLMs, TTS, voice transcription, database management, retrieval-augmented-generation and more are abstracted away but still allow for fine control over them for experienced developers. The struggles of changing your code to fit a new system or AI model are not present as the interface always stays the same, allowing you to rapidly experiment with different AI models and systems without needing to change your code. Nova can be used by researchers or AI enthusiasts, hobbyists and in general everyone who wants something that "just works" without having to dig into documentation for every little change in the pipeline.
 
 ## Getting started
@@ -35,25 +34,21 @@ Try updating libstdc++:
 ```conda install -c conda-forge libstdcxx-ng```
 
 Nova is now installed and ready to be used. I recommend to take a look at the examples in ```./Nova2/examples``` as they give you an overview about how Nova works and how to use it.  
-Below is a simple script that shows you how to quickly set up a chat with an LLM using the Nova framework. Create a new script outside the Nova2 folder and copy this code:
+Below is a simple script that shows you how to quickly set up a chat with an LLM using the Nova sdk. Create a new script outside the Nova2 folder and copy this code:
 ```py
 from nova import *
 
 # The Nova class is the API
 nova = Nova()
 
-# The inference engine dictates how inference is run in the background
-# For this example we are using LlamaCPP
-inference_engine = InferenceEngineLlamaCPP()
-
 # The conditioning contains our settings for the LLM
 conditioning = LLMConditioning(
+    inference_engine="inference_llamacpp", # The inference engine dictates how inference is run in the background. For this example we are using LlamaCPP
     model="bartowski/Qwen2.5-7B-Instruct-1M-GGUF",
     file="*Q8_0.gguf"
 )
 
-nova.configure_llm(inference_engine, conditioning)
-nova.apply_config_llm()
+nova.configure_llm_and_apply(conditioning=conditioning)
 
 conversation = Conversation()
 
@@ -111,25 +106,17 @@ The transcriptor combines several AI models and frameworks into its audio-prepro
 ## Project structure
 This section is dedicated to giving you an overview about how the project is structured:  
   
-You can find almost all of the scripts in ./Nova2/app. Here, most systems are separated into a "manager" and a "data" script. The data script holds all custom data structures the manager needs, while the manager does the actual work. The app folder also contains the "zonos" folder, which holds all code of the Zonos TTS. app also contains the "inference_engines" folder. This is where the inference engines for LLM and TTS are located. They are in the folders "inference_llm" and "inference_tts" respectively. These folders also contain the scripts that contain the base classes the inference engine classes inherit from.  
+You can find almost all of the scripts in ./Nova2/app. Here, most systems are separated into a "manager" and a "data" script. The data script holds all custom data structures the manager needs, while the manager does the actual work. The root contains the "inference_engines" folder. This is where the inference engines for LLM, TTS and STT are located. They are in the folders `inference_llm`, `inference_tts` and `inference_stt` respectively. These folders also contain the scripts that contain the base classes the inference engine classes inherit from.  
   
 In ./Nova2/data you can find the "libraries" folder that not only contains a list of which tools are considered to be "internal", but also the "prompt_library.json" file which holds all built-in prompts the system uses.  
   
-./Nova2/db holds all databases of the project, which are separated into the "db_memory_embeddings", "db_secrets" and "db_voice_embeddings" folders.  
+./Nova2/db holds all databases of the project, which are separated into the "db_memory_embeddings" and "db_voice_embeddings" folders.  
   
 ./Nova2/examples hold a bunch of Jupyter notebooks teaching you the basics of how to use Nova.  
   
 ./Nova2/tool_api holds the "tool_api.py" script which provides tools with their API, as well as their base class they need to inherit from.  
   
 ./Nova2/tools holds all the tools Nova has access to.
-
-## Roadmap
-Below are a couple of ideas I want to implement into Nova in future releases. These are NOT guaranteed to be implemented in the future. They are just a couple of ideas I am currently playing around with.
-- Add support for Vision-Language models.
-- Add support for multiple different contexts.
-- Add a tool testing suite for user created tools.
-- Add support for thinking models.
-- Add more inference engines and internal tools.
 
 ## Testing
 Current code coverage: 15%
