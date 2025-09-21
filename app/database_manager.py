@@ -13,17 +13,9 @@ from transformers import AutoModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, Distance, VectorParams
 from qdrant_client.http import models
-from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
 from Nova2.app.helpers import suppress_output, Singleton
-
-# Database setup
-db_secrets_folder = Path(__file__).parent.parent / "db" / "db_secrets"
-db_secrets_folder.mkdir(parents=True, exist_ok=True)
-db_secrets_location = db_secrets_folder / "db_secrets.db"
-db_secrets_engine = create_engine(f"sqlite:///{db_secrets_location}", echo=False)
 
 base = declarative_base()
 
@@ -32,9 +24,9 @@ class MemoryEmbeddingDatabaseManager(Singleton):
     def __init__(self):
         """
         This class is responsible for managing the memory database which stores memories as text-embeddings.
-        It also provides a semantic search system used for retrieval augumented generation.
+        It also provides a semantic search system used for retrieval augmented generation.
         """
-        self._qdrant_client = None
+        self._qdrant_client: QdrantClient = None # type: ignore
         self.text_embedding_model = None
         self._prepare_database()
 
@@ -52,8 +44,6 @@ class MemoryEmbeddingDatabaseManager(Singleton):
             self._save_embedding_to_db(text)
 
     def _save_embedding_to_db(self, text: str) -> None:
-        assert self._qdrant_client is not None
-        
         embedding = self._compute_embedding(text)
 
         #Prevent duplicate entries
@@ -86,14 +76,12 @@ class MemoryEmbeddingDatabaseManager(Singleton):
 
         Arguments:
             text (str): The text to do a semantic search on.
-            num_of_results (int): The amount of results that should be returned. Only returns the maximum amount of results that pass the cosine simmilarity threshold. Defaults to 1.
+            num_of_results (int): The amount of results that should be returned. Only returns the maximum amount of results that pass the cosine similarity threshold. Defaults to 1.
             search_area (int): The amount of earlier and later entries around each result. If set to 0, only the result itself will be returned. Defaults to 0.
 
         Returns:
-            list[list[str]]. Each string list is a result with the entries around the result in chronological order. Returns None if no results surpassed the cosine simmilarity threshold.
+            list[list[str]]. Each string list is a result with the entries around the result in chronological order. Returns None if no results surpassed the cosine similarity threshold.
         """
-        assert self._qdrant_client is not None
-
         query_embedding = self._torch_tensor_to_float_list(self._compute_embedding(text=text))
 
         search_results = self._qdrant_client.query_points(
@@ -134,8 +122,6 @@ class MemoryEmbeddingDatabaseManager(Singleton):
         Returns:
             list[str]: A list of results from the database.
         """
-        assert self._qdrant_client is not None
-        
         max_id = self._qdrant_client.get_collection("memory_embeddings").points_count - 1 # type: ignore
 
         limit_down = size
@@ -146,10 +132,10 @@ class MemoryEmbeddingDatabaseManager(Singleton):
         # Ensure the start is inside the bounds of the db
         if (center_id - size < 0):
             start_id = 0
-            limit_down = 0 # Ensure the area shrinks if the query starts at 0 instead of beeing offset upwards
+            limit_down = 0 # Ensure the area shrinks if the query starts at 0 instead of being offset upwards
         elif (start_id + limit_up > max_id):
             start_id = max_id
-            limit_up = 0 # Ensure the area shrinks if the query is partially greater then the collection size
+            limit_up = 0 # Ensure the area shrinks if the query is partially greater than the collection size
 
         search_results = self._qdrant_client.query_points(
             collection_name="memory_embeddings",
@@ -160,8 +146,6 @@ class MemoryEmbeddingDatabaseManager(Singleton):
         return [result.payload["text"] for result in search_results.points] # type: ignore
     
     def _is_embedding_in_database(self, embedding: list[float], similarity_threshold: float = 0.8) -> bool:
-        assert self._qdrant_client is not None
-        
         results = self._qdrant_client.query_points(
             collection_name="memory_embeddings",
             query=embedding,
@@ -181,9 +165,7 @@ class MemoryEmbeddingDatabaseManager(Singleton):
         Returns:
             torch.FloatTensor: The computed embedding.
         """
-        assert self.text_embedding_model is not None
-        
-        embedding = self.text_embedding_model.encode(text, task="text-matching")
+        embedding = self.text_embedding_model.encode(text, task="text-matching") # type: ignore
 
         return torch.from_numpy(embedding).squeeze()
 
@@ -207,9 +189,9 @@ class VoiceDatabaseManager(Singleton):
     def __init__(self) -> None:
         """
         This class is responsible for managing the database that stores the voice embeddings generated by 'transcriptor.py'.
-        It also provides a method to compare two embeddings to determine wether two voices match.
+        It also provides a method to compare two embeddings to determine whether two voices match.
         """
-        self._qdrant_client = None
+        self._qdrant_client: QdrantClient = None # type: ignore
         self._prepare_database()
     
     def create_voice(self, embedding: torch.Tensor, name: str) -> None:
@@ -220,8 +202,6 @@ class VoiceDatabaseManager(Singleton):
             embedding (torch.FloatTensor): The embedding that will be stored in the database.
             name (str): The name of the person the voice belongs to. Will be stored together with the embedding.
         """
-        assert self._qdrant_client is not None
-
         self._qdrant_client.upsert(
             collection_name="voice_embeddings",
             points=[
@@ -259,8 +239,6 @@ class VoiceDatabaseManager(Singleton):
         Returns:
             Tuple[str, float] | None: Either returns a tuple with the name of the voice and the confidence score or None if no voice could be found.
         """
-        assert self._qdrant_client is not None
-
         search_results = self._qdrant_client.search(
             collection_name="voice_embeddings",
             query_vector=self._torch_tensor_to_float_list(embedding),
@@ -280,10 +258,8 @@ class VoiceDatabaseManager(Singleton):
             name (str): The name to search for.
 
         Returns:
-            bool: Wether a voice with that name already exists in the database.
+            bool: Whether a voice with that name already exists in the database.
         """
-        assert self._qdrant_client is not None
-
         filter_condition = models.Filter(
             must=[
                 models.FieldCondition(
@@ -311,8 +287,6 @@ class VoiceDatabaseManager(Singleton):
         Returns:
             int | None: The index of the voice or None if no voice was found.
         """
-        assert self._qdrant_client is not None
-
         search_results = self._qdrant_client.search(
             collection_name="voice_embeddings",
             query_vector=self._torch_tensor_to_float_list(embedding),
@@ -333,10 +307,8 @@ class VoiceDatabaseManager(Singleton):
             new_name (str): What to name the voice.
 
         Returns:
-            bool: Wether the operation was successfull.
+            bool: Whether the operation was successful.
         """
-        assert self._qdrant_client is not None
-
         # Find the voice ID using the old name
         search_result = self._qdrant_client.scroll(
             collection_name="voice_embeddings",
@@ -375,89 +347,3 @@ class VoiceDatabaseManager(Singleton):
 
     def _torch_tensor_to_float_list(self, embedding: torch.Tensor) -> list[float]:
         return embedding.squeeze().cpu().numpy().tolist()
-
-class SecretsDatabaseManager:
-    def __init__(self):
-        """
-        This class is used to store sensitive information like API keys.
-        """
-        self._prepare_database()
-
-    def add_secret(self, name: str, encrypted_key: str) -> None:
-        """
-        Add a new entry to the database.
-
-        Arguments:
-            name (str): The name of the secret.
-            encrypted_key(str): The secret itself. Will be stored in plain text in the database, so should be encrypted beforehand.
-        """
-        try:
-            new_secret = Secret(name=name, encrypted_key=encrypted_key)
-            self._session.add(new_secret)
-            self._session.commit()
-        except:
-            self._session.rollback()
-            raise Exception("Error when writing to database.")
-        
-    def get_secret(self, name: str) -> str | None:
-        """
-        Retrieve a secret from the database.
-
-        Arguments:
-            name (str): The name of the secret that should be retrieved.
-
-        Returns:
-            str | None: The secret or None if the secret could not be found.
-        """
-        secret = self._session.query(Secret).filter_by(name=name).first()
-
-        if secret:
-            return secret.encrypted_key # type: ignore
-        
-    def edit_secret(self, name: str, encrypted_key: str) -> None:
-        """
-        Modifies the value of a secret.
-
-        Arguments:
-            name (str): The name of the secret.
-            encrypted_key(str): The secret itself. Will be stored in plain text in the database, so should be encrypted beforehand.
-        """
-        secret = self._session.query(Secret).filter_by(name=name).first()
-
-        try:
-            if secret:
-                secret.encrypted_key = encrypted_key # type: ignore
-                self._session.commit()
-        except:
-            self._session.rollback()
-            raise Exception("Error when writing to database.")
-
-    def delete_secret(self, name: str) -> None:
-        """
-        Deletes a secret.
-
-        Arguments:
-            name (str): The name of the secret.
-        """
-        secret = self._session.query(Secret).filter_by(name=name).first()
-        
-        try:
-            if secret:
-                self._session.delete(secret)
-                self._session.commit()
-        except:
-            self._session.rollback()
-            raise Exception("Error when writing to database.")
-
-    def _prepare_database(self) -> None:
-        base.metadata.create_all(db_secrets_engine)
-        self._session_factory = sessionmaker(bind=db_secrets_engine)
-
-        self._session = self._session_factory()
-
-class Secret(base):
-    __tablename__ = "secrets"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    encrypted_key = Column(String)

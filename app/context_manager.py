@@ -7,12 +7,23 @@ import time
 from pathlib import Path
 import json
 import atexit
+from uuid import uuid4
 
 import torch
 
-from Nova2.app.context_data import ContextDatapoint, ContextSourceBase, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
-from Nova2.app.transcriptor_data import Word
+from Nova2.app.context_data import ContextDatapoint, ContextSource, ContextSource_Voice, Context, ContextGenerator, ContextGeneratorList
+from Nova2.app.stt_data import Word
 from Nova2.app.helpers import Singleton
+
+def _is_context_initialized(func):
+    """
+    Decorator to ensure that the context is initialized before executing the function.
+    """
+    def wrapper(self, *args, **kwargs):
+        if not self._context_file:
+            raise Exception("A context file must be set before using this method. Use set_active_context_data() to set the context file.")
+        return func(self, *args, **kwargs)
+    return wrapper
 
 class ContextManager(Singleton):
     def __init__(self, saving_interval: int = 120) -> None:
@@ -23,43 +34,44 @@ class ContextManager(Singleton):
             saving_interval (int): The interval in seconds at which the context data will be saved to a file. The context will also be saved when the program is closed.
         """
         self.source_list = ContextGeneratorList()
-        self.context_data = []
         self._previous_context_data = []
         self.saving_interval = saving_interval
 
-        self._context_file = Path(__file__).parent.parent / "data" / "context.json"
-        self.context_data = self._prepare_context_data()
+        self._context_file = ""
+        self._context_folder = Path(__file__).parent.parent / "data" / "context"
+
+        self._context_folder.mkdir(parents=True, exist_ok=True)
+
+        self.context_data: list[dict] = []
 
         self.ctx_limit = 25
 
-        # Save the context data to the disk when the program is terminated
-        atexit.register(self.save_context_data)
-
         self._saving_thread = Thread(target=self._periodic_save, daemon=True)
-        self._saving_thread.start()
+        self._context_recording_thread = Thread(target=self._record_context, daemon=True)
 
-        self._context_recorder = Thread(target=self._record_context, daemon=True)
-        self._context_recorder.start()
-
+    @_is_context_initialized
     def record_data(self, source: ContextGenerator) -> None:
         """
         Begins to listen to the source and record the data.
         """
         self.source_list.add(context_source=source)
 
+    @_is_context_initialized
     def _record_context(self) -> None:
         """
         Stores the context of all bound context sources.
         """
-        while True:
+        while self._context_file != "":
             datapoint = self.source_list.get_next()
             if not datapoint:
+                time.sleep(0.1)
                 continue
 
             self.add_to_context(datapoint=datapoint)
 
             time.sleep(0.1)
 
+    @_is_context_initialized
     def add_to_context(self, datapoint: ContextDatapoint) -> None:
         """
         Adds content to the context.json file.
@@ -72,6 +84,7 @@ class ContextManager(Singleton):
         if self.ctx_limit > 0:
             self.context_data = self.context_data[-self.ctx_limit:]
 
+    @_is_context_initialized
     def _overwrite_context(self, context: list[ContextDatapoint]) -> None:
         """
         Overwrites the entire context. Use with caution.
@@ -84,24 +97,92 @@ class ContextManager(Singleton):
         for datapoint in context:
             self.add_to_context(datapoint=datapoint)
 
+    @_is_context_initialized
     def _periodic_save(self):
         """
         Periodically saves the context data to the context.json file.
         """
-        while True:
+        while self._context_file != "":
             time.sleep(self.saving_interval)
             self.save_context_data()
 
+    @_is_context_initialized
     def save_context_data(self) -> None:
         """
         Saves the context data to the context.json file.
         """
         if self.context_data != self._previous_context_data:
-            with open(self._context_file, 'w') as file:
+            with open(str(self._context_file), 'w') as file:
                 json.dump(self.context_data, file, indent=4)
 
-        self._previous_context_data = self.context_data
+            self._previous_context_data = self.context_data
 
+    def set_active_context_file(self, file_name: str = str(uuid4())) -> None:
+        """
+        Changes the current context data to the one stored in the specified file.
+        Saves the currently active context data to the context file before changing.
+        
+        Arguments:
+            file_name (str): The name of the file to load the context data from (without the .ctx extension). Defaults to a random UUID.
+        """
+        if self._context_file != "":
+            self.save_context_data()
+            self._context_file = "" # Prompt running threads to stop
+            self._saving_thread.join()
+            self._context_recording_thread.join()
+
+        self._context_file = self._context_folder / f"{file_name}.ctx"
+
+        self.context_data = self._prepare_context_data()
+
+        # Save the context data to the disk when the program is terminated
+        # atexit.register(self.save_context_data)
+
+    def get_active_context_file(self) -> str:
+        """
+        Returns the currently active context file.
+
+        Returns:
+            str: The path to the currently active context file.
+        """
+        return Path(self._context_file).name if self._context_file else ""
+    
+    def get_all_context_files(self) -> list[str]:
+        """
+        Returns all context files in the context folder.
+
+        Returns:
+            list[str]: A list of all context files in the context folder.
+        """
+        return [file.name for file in self._context_folder.glob("*.ctx")]
+    
+    def rename_context_file(self, old_name: str, new_name: str) -> None:
+        """
+        Renames the currently active context file.
+
+        Arguments:
+            old_name (str): The current name of the context file (without the .ctx extension).
+            new_name (str): The new name for the context file (without the .ctx extension).
+        """
+        old_path = self._context_folder / f"{old_name}.ctx"
+        new_path = self._context_folder / f"{new_name}.ctx"
+
+        if old_path.exists():
+            old_path.rename(new_path)
+        else:
+            raise FileNotFoundError(f"Context file {old_name}.ctx does not exist.")
+    
+    def is_context_initialized(self) -> bool:
+        """
+        Checks if a context file is set and initialized.
+        It is only possible to modify the context if it is initialized.
+
+        Returns:
+            bool: True if the context is initialized, False otherwise.
+        """
+        return self._context_file != ""
+
+    @_is_context_initialized
     def get_context_data(self) -> Context:
         """
         Reconstructs a Context object from the stored context.
@@ -109,7 +190,7 @@ class ContextManager(Singleton):
         Returns:
             Context: The context data stored in memory.
         """
-        sources = ContextSourceBase.get_all_sources()
+        sources = ContextSource.get_all_sources()
 
         datapoints = []
 
@@ -139,6 +220,7 @@ class ContextManager(Singleton):
 
         return Context(datapoints)
     
+    @_is_context_initialized
     def rename_voice(self, old_name: str, new_name: str) -> None:
         """
         Renames a voice in the context.
@@ -171,12 +253,11 @@ class ContextManager(Singleton):
         Returns:
             list[dict]: The contents of the context.json file.
         """
-        if not self._context_file.exists():
-            with open(self._context_file, 'w') as file:
-                json.dump([], file)
-
-        with open(self._context_file, 'r') as file:
+        with open(str(self._context_file), 'r') as file:
             context_data = json.load(file)
+
+        self._saving_thread.start()
+        self._context_recording_thread.start()
 
         return context_data
 

@@ -5,15 +5,14 @@ __pycache__/
 db/*
 !db/.gitkeep
 
-tools/debug_tool
-tools/debug_tool/*
+tools/internal_debug
+tools/internal_debug/*
 
-data/context.json
+data/context/debug_ctx.ctx
 
 debug_runner.py
 
-app/world_model.py
-app/pipeline.py
+.env
 
 pretrained_models/*
 

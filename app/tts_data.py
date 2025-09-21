@@ -1,21 +1,22 @@
 """
 Description: Holds all data required to run TTS inference.
 """
+from Nova2.app.interfaces import (
+    TTSConditioningBase
+)
 
-class TTSConditioning:
+class TTSConditioning(TTSConditioningBase):
     def __init__(
                 self,
                 model: str,
+                inference_engine:str,
                 voice: str,
                 expressivness: float,
                 stability: float,
                 **kwargs
                 ) -> None:
-        """
-        Stores all values required for TTS conditioning.
-        Note that some parameters are inference engine exclusive and will be ignored if an incompatibe engine is used.
-        """
         self.model = model
+        self.inference_engine = inference_engine
         self.voice = voice
         self.expressivness = expressivness
         self.stability = stability

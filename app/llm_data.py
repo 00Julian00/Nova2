@@ -8,48 +8,41 @@ from dataclasses import dataclass, field
 
 from Nova2.app.tool_data import LLMToolCall, LLMToolCallParameter
 
-class LLMConditioning:
-    def __init__(
-                self,
-                model: str,
-                temperature: float = 1.0,
-                max_completion_tokens: int = 1024,
-                add_default_sys_prompt: bool = True,
-                **kwargs
-                ) -> None:
-        """
-        Stores all values required for LLM conditioning.
+from Nova2.app.interfaces import (
+    LLMConditioningBase,
+    MemoryConfigBase,
+    MessageBase,
+    LLMResponseBase,
+    ConversationBase
+)
 
-        Arguments:
-            model (str): The model name. Must a valid huggingface repo ID.
-            file (str): The file to use from that repo. Must be GGUF format.
-            temperature (float): The temperature to use for inference.
-            max_completion_tokens (int): How many tokens the model is allowed to generate.
-            add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
-        """
+class LLMConditioning(LLMConditioningBase):
+    def __init__(
+            self,
+            model: str,
+            inference_engine: str,
+            filter_thinking_process: bool = True,
+            temperature: float = 1.0,
+            max_completion_tokens: int = 1024,
+            add_default_sys_prompt: bool = True,
+            **kwargs
+            ) -> None:
         self.model = model
+        self.inference_engine = inference_engine
+        self.filter_thinking_process = filter_thinking_process
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self.add_default_sys_prompt = add_default_sys_prompt
         self.kwargs = kwargs
 
 @dataclass
-class MemoryConfig:
-    """
-    Stores the settings that determines how memories are retrieved.
-
-    Arguments:
-        retrieve_memories (bool): Whether to search for memories in the database.
-        num_results (int): The maximum amount of results that should be fed to the model.
-        search_area (int): How much context around the search result should additionally be fed to the model.
-        cosine_threshold (float): The similarity threshold a result must surpass to be utilized.
-    """
+class MemoryConfig(MemoryConfigBase):
     retrieve_memories: bool = True
     num_results: int = 2
     search_area: int = 2
     cosine_threshold: float = 0.6
 
-class Message:
+class Message(MessageBase):
     def __init__(
             self,
             author: Literal["user", "assistant", "system", "tool"],
@@ -57,7 +50,11 @@ class Message:
             **kwargs
             ) -> None:
         """
-        Stores one message in a conversation.
+        Holds a single message in the conversation.
+
+        Arguments:
+            author (Literal["user", "assistant", "system", "tool"]): The author of the message.
+            content (str | Path): The content of the message.
         """
         self._allowed_roles = ["user", "assistant", "system", "tool"]
 
@@ -77,12 +74,9 @@ class Message:
             self.tool_call_id = kwargs["tool_call_id"]
 
 @dataclass
-class LLMResponse:
-    """
-    Stores necessary LLM response information.
-    """
+class LLMResponse(LLMResponseBase):
     message: str = ""
-    tool_calls: list["LLMToolCall"] = field(default_factory=list)
+    tool_calls: list[LLMToolCall] = field(default_factory=list)
     used_tokens: int = 0
 
     def from_dict(self, llm_response: dict) -> None:
@@ -126,74 +120,35 @@ class LLMResponse:
         self.used_tokens = llm_response.usage.total_tokens # type: ignore
 
     def to_message(self) -> Message:
-        """
-        Formats the LLM reponse to a Message object.
-        """
         return Message(author="assistant", content=self.message)
 
-class Conversation:
+class Conversation(ConversationBase):
     def __init__(
             self,
             conversation: list[Message] = []
             ) -> None:
-        """
-        Stores the conversation between the LLM and the user.
-        """
         self._conversation = conversation
         self._allowed_roles = ["user", "assistant", "system"]
 
-    def add_message(
-            self,
-            message: Message
-            ) -> None:
-        """
-        Add one message to the conversation.
+    def add_message(self, message: MessageBase) -> None:
+        self._conversation.append(message) # type: ignore
 
-        Arguments:
-            message (Message): The message that will be added.
-        """
-        self._conversation.append(message)
-
-    def add_messages(self,
-            messages: list[Message]
-            ) -> None:
-        """
-        Add multiple messages to the conversation.
-
-        Arguments:
-            messages (list[Message]): The messages that will be added.
-        """
+    def add_messages(self, messages: list[MessageBase]) -> None:
         self._conversation += messages
 
-    def delete_newest(self,
-            author: Literal["user", "assistant", "system", None] = None
-            ) -> None:
-        """
-        Delete the newest message in the conversation. If an author is parsed, the newest message with that author is deleted.
-
-        Arguments:
-            author (Literal["user", "assistant", "system", None]): An optional parameter. The author whose newest message will be deleted.
-        """
+    def delete_newest(self, author: Literal["user", "assistant", "system", None] = None) -> None:
         if author == None:
             del self._conversation[-1]
         else:
-            #Itterate through the list from the back and find the first one with a matching author
+            #Iterate through the list from the back and find the first one with a matching author
             for i, message in enumerate(reversed(self._conversation)):
-                if message.author == author:
+                if message.author == author: # type: ignore
                     del self._conversation[i]
                     break
 
-    def delete_all_from(self,
-            author: Literal["user", "assistant", "system"]
-            ) -> None:
-        """
-        Delete all messages from an author. Can be used to purge system prompts if behaviour should be overwritten.
-
-        Arguments:
-            author (Literal["user", "assistant", "system"]): The author from whom all messages should be deleted.
-        """
+    def delete_all_from(self, author: Literal["user", "assistant", "system"]) -> None:
         for i, message in enumerate(reversed(self._conversation)):
-            if message.author == author:
+            if message.author == author: # type: ignore
                 del self._conversation[i]
 
     def get_newest(self, author: Literal["user", "assistant", "system", None] = None) -> Message | None:
@@ -210,38 +165,27 @@ class Conversation:
             return None
         
         if not author:
-            return self._conversation[-1]
+            msg = self._conversation[-1]
+            return self._conversation[-1] # type: ignore
         
         for i, message in enumerate(reversed(self._conversation)):
-            if message.author == author:
-                return message
-
+            if message.author == author: # type: ignore
+                return message # type: ignore
+ 
     def to_list(self) -> list[dict]:
-        """
-        Convert the stored conversation to a format that can be parsed to the LLM.
-
-        Returns:
-            list[dict]: The formatted conversation.
-        """
         conversation = []
 
         for message in self._conversation:
-            if message.author == "tool":
-                conversation.append({"role": "tool", "name": message.name, "content": message.content, "tool_call_id": message.tool_call_id})
+            if message.author == "tool": # type: ignore
+                conversation.append({"role": "tool", "name": message.name, "content": message.content, "tool_call_id": message.tool_call_id}) # type: ignore
             else:
-                conversation.append({"role": message.author, "content": message.content})
+                conversation.append({"role": message.author, "content": message.content}) # type: ignore
 
         return conversation
     
     def from_list(self,
             conversation: list[dict]
             ) -> None:
-        """
-        Convert the LLM format conversation into a conversation object. Overwrites the stored conversation.
-
-        Arguments:
-            converation (list[dict]): The conversation that should be converted and stored.
-        """
         self._conversation = []
 
         for message in conversation:

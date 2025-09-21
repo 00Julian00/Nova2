@@ -60,3 +60,14 @@ def deprecated(func=None, *, warning=""):
         return decorator
     # Called without parameters: @deprecated
     return decorator(func)
+
+def is_configured(func):
+    """
+    Ensures that the system has been configured before running the function.
+    """
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self._conditioning:
+            raise Exception("System not configured. Parse a configuration object and apply the configuration first.")
+        return func(self, *args, **kwargs)
+    return wrapper

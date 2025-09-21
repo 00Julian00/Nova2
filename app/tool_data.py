@@ -4,48 +4,37 @@ Description: Holds all data required for tool use.
 
 from dataclasses import dataclass
 
-@dataclass
-class LLMToolParameter:
-    """
-    Defines a parameter for a tool.
+from Nova2.tool_api.tool_api import ToolBaseClass
+from Nova2.app.interfaces import (
+    LLMToolBase,
+    LLMToolParameterBase,
+    LoadedToolBase,
+    LLMToolCallBase,
+    LLMToolCallParameterBase
+)
 
-    Arguments:
-        name (str): The name of the parameter. Should be short and accurate.
-        description (str): A description in natural language. Helps the LLM to understand how to use the parameter.
-        type (str): What datatype the parameter is, i.e. bool, int, string etc.
-        required (bool): Whether the parameter has to be parsed.
-    """
+@dataclass
+class LLMToolParameter(LLMToolParameterBase):
     name: str
     description: str
-    type: str
+    datatype: str
     required: bool
 
 @dataclass
-class LLMTool:
-    """
-    Defines a tool that can be used by the LLM.
-
-    Arguments:
-        name (str): The name of the tool. Should be short and accurate.
-        description (str): A description in natural language. Helps the LLM to understand how to use the tool.
-        parameters (List[LLMToolParameter]): A list of parameters the tool can take.
-    """
+class LLMTool(LLMToolBase):
     name: str
     description: str
     parameters: list[LLMToolParameter]
     _instance: callable # type: ignore
 
     def to_dict(self) -> dict:
-        """
-        Converts a list of LLMTools to the proper json format for the LLM and returns it as a dictionary.
-        """
         properties = {}
         required_params = []
         
         # Turn the parameters into a single properties object
         for param in self.parameters:
             properties[param.name] = {
-                "type": param.type,
+                "type": param.datatype,
                 "description": param.description
             }
             if param.required:
@@ -67,7 +56,12 @@ class LLMTool:
         return tool
 
 @dataclass
-class LLMToolCallParameter:
+class LoadedTool(LoadedToolBase):
+    name: str
+    class_instance: ToolBaseClass
+
+@dataclass
+class LLMToolCallParameter(LLMToolCallParameterBase):
     """
     Defines a parameter for a tool call.
     """
@@ -75,7 +69,7 @@ class LLMToolCallParameter:
     value: str
 
 @dataclass
-class LLMToolCall:
+class LLMToolCall(LLMToolCallBase):
     """
     Defines a tool call made by the LLM.
     """

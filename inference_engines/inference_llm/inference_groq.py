@@ -1,13 +1,13 @@
+import os
+
 import groq
 
-from Nova2.app.inference_engines.inference_llm.inference_base_llm import InferenceEngineBaseLLM
+from Nova2.app.interfaces import LLMInferenceEngineBase
 from Nova2.app.tool_data import *
 from Nova2.app.security_manager import *
-from Nova2.app.security_data import Secrets
 from Nova2.app.llm_data import *
-from Nova2.app.helpers import deprecated
 
-class InferenceEngineGroq(InferenceEngineBaseLLM):
+class InferenceEngineGroq(LLMInferenceEngineBase):
     def __init__(self):
         """
         This class provides the interface to run inference via the groq API.
@@ -20,8 +20,8 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
 
         self.is_local = False
 
-    def initialize_model(self, conditioning: LLMConditioning) -> None:
-        key = self._key_manager.get_secret(Secrets.GROQ_API)
+    def initialize_model(self, conditioning: LLMConditioning) -> None: # type: ignore
+        key = os.getenv("GROQ_API_KEY")
 
         if not key:
             raise ValueError("Groq API key not found")
@@ -32,7 +32,7 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
 
         self._model = conditioning.model
 
-    def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None) -> LLMResponse:
+    def run_inference(self, conversation: Conversation, tools: list[LLMTool] | None) -> LLMResponse: # type: ignore
         conv = conversation.to_list()
 
         # Check if tools were parsed
@@ -60,10 +60,9 @@ class InferenceEngineGroq(InferenceEngineBaseLLM):
 
         return formated_response
     
-    @deprecated(warning=f"Function 'get_current_model' is deprecated and will be removed in a future update. Use the property 'model' instead.")
-    def get_current_model(self) -> str:
-        return self._model
+    def free(self) -> None:
+        del self._groq_client
     
     @property
-    def model(self) -> str | None:
+    def model(self) -> str:
         return self._model

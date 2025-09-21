@@ -12,35 +12,43 @@ from dataclasses import dataclass
 
 from Nova2.app.llm_data import Conversation, Message
 
-class ContextSourceBase:
+from Nova2.app.interfaces import (
+    ContextSourceBase,
+    ContextDatapointBase,
+    ContextBase,
+    ContextGeneratorBase,
+    ContextGeneratorListBase
+)
+
+class ContextSource(ContextSourceBase):
     @classmethod
     def get_all_sources(cls) -> list[type]:
         return cls.__subclasses__()
 
 @dataclass
-class ContextSource_Voice(ContextSourceBase):
+class ContextSource_Voice(ContextSource):
     speaker: str
 
-class ContextSource_User(ContextSourceBase):
+class ContextSource_User(ContextSource):
     pass
 
-class ContextSource_Assistant(ContextSourceBase):
+class ContextSource_Assistant(ContextSource):
     pass
 
 @dataclass
-class ContextSource_ToolResponse(ContextSourceBase):
+class ContextSource_ToolResponse(ContextSource):
     name: str
     id: str
 
-class ContextSource_System(ContextSourceBase):
+class ContextSource_System(ContextSource):
     pass
 
 @dataclass
-class ContextDatapoint:
+class ContextDatapoint(ContextDatapointBase):
     """
     This class holds a singular datapoint in the context.
     """
-    source: ContextSourceBase
+    source: ContextSource
     content: str
     timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     
@@ -68,7 +76,7 @@ class ContextDatapoint:
             }
 
 @dataclass
-class Context:
+class Context(ContextBase):
     """
     This class stores context which is a list of datapoints all with source, content and timestamp.
     """
@@ -122,7 +130,7 @@ class Context:
         return Conversation(messages)
 
 @dataclass
-class ContextGenerator:
+class ContextGenerator(ContextGeneratorBase):
     """
     Holds the data generator produced by a context generator. Yields ContextDatapoint.
     """
@@ -135,10 +143,10 @@ class ContextGenerator:
         for datapoint in self._generator:
             yield datapoint
 
-class ContextGeneratorList:
+class ContextGeneratorList(ContextGeneratorListBase):
     def __init__(self) -> None:
         """
-        Manages a dynamic thread-safe list of context sources that can be itterated through.
+        Manages a dynamic thread-safe list of context sources that can be iterated through.
         """
         self._index = 0
         self._sources = []
@@ -148,10 +156,10 @@ class ContextGeneratorList:
         self._worker_thread = Thread(target=self._worker, daemon=True)
         self._worker_thread.start()
 
-    def add(self, context_source: ContextGenerator) -> None:
+    def add(self, context_source: ContextGeneratorBase) -> None:
         self._command_queue.put((ListCommands.ADD, context_source))
 
-    def remove(self, context_source: ContextGenerator) -> None:
+    def remove(self, context_source: ContextGeneratorBase) -> None:
         self._command_queue.put((ListCommands.REMOVE, context_source))
 
     def get_next(self) -> ContextDatapoint:

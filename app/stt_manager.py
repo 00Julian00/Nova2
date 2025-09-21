@@ -7,25 +7,22 @@ import queue
 import threading
 import time
 from typing import Generator
-import multiprocessing
 
-from Nova2.app import helpers
+from Nova2.app.helpers import suppress_output, is_configured
 
-import langcodes
 import numpy as np
 import sounddevice as sd
 import torch
 import torch.nn.functional as F
-from denoiser import pretrained
-from denoiser.dsp import convert_audio
-from faster_whisper import WhisperModel
-with helpers.suppress_output():
+with suppress_output():
     from speechbrain.inference.speaker import EncoderClassifier
 import silero_vad
 
-from Nova2.app.transcriptor_data import Word, TranscriptorConditioning
+from Nova2.app.stt_data import Word, STTConditioning
 from Nova2.app.database_manager import VoiceDatabaseManager
 from Nova2.app.context_data import ContextDatapoint, ContextSource_Voice
+from Nova2.app.interfaces import STTInferenceEngineBase
+from Nova2.app.inference_engine_manager import InferenceEngineManager
 
 SAMPLE_RATE = 16000
 
@@ -34,7 +31,7 @@ class VoiceAnalysis:
         """
         A pipeline for live voice analysis.
         """
-        self._conditioning = None
+        self._conditioning: STTConditioning = None # type: ignore
 
         self._conditioning_dirty = None
 
@@ -42,8 +39,11 @@ class VoiceAnalysis:
             os.environ["KMP_DUPLICATE_LIB_OK"] = "True" # Only necessary for windows
 
         self._voice_database_manager = VoiceDatabaseManager()
+        self._inference_engine_manager = InferenceEngineManager()
 
-    def configure(self, conditioning: TranscriptorConditioning):
+    def configure(self, conditioning: STTConditioning):
+        if not self._conditioning_dirty:
+            raise Exception("Failed to initialize TTS. No TTS conditioning provided.")
         self._conditioning_dirty = conditioning
 
     def apply_config(self) -> None:
@@ -52,6 +52,13 @@ class VoiceAnalysis:
 
         self._conditioning = self._conditioning_dirty
 
+        self._inference_engine: STTInferenceEngineBase = self._inference_engine_manager.request_engine(
+            self._conditioning.inference_engine,
+            "STT"
+            ) # type: ignore
+        
+        self._inference_engine.initialize_model(self._conditioning) # type: ignore
+
         self._verbose = False
 
         self._device = self._conditioning.device
@@ -59,31 +66,10 @@ class VoiceAnalysis:
             self._device = "cpu"
             
         torch.set_default_dtype(torch.float32)
-
-        with helpers.suppress_output():
-            self._model = WhisperModel(
-                model_size_or_path=self._conditioning.model,
-                device=self._device,
-                compute_type="float32",
-                cpu_threads=multiprocessing.cpu_count()
-                )
-            
-        if self._conditioning.language is not None:
-            try:
-                langcodes.Language.get(self._conditioning.language)
-            except:
-                raise ValueError(f"{self._conditioning.language} is not a valid language code.")
-            
-        self._language = self._conditioning.language
-        
-        if self._conditioning.voice_boost != 0.0:
-            self._denoise_model = pretrained.dns64()
-            self._denoise_model.eval()
-            self._denoise_model = self._denoise_model.to(self._device)
         
         self._vad_model = silero_vad.load_silero_vad()
 
-        with helpers.suppress_output():
+        with suppress_output():
             self._speaker_embedding_model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-xvect-voxceleb", savedir="pretrained_models/spkrec-xvect-voxceleb", run_opts={"device": self._device})
 
         self._microphone_index = self._conditioning.microphone_index
@@ -92,7 +78,6 @@ class VoiceAnalysis:
         self._locked_words = 0
         self._audio_queue = queue.Queue()
         self._is_recording = True
-        self._voice_boost = self._conditioning.voice_boost
         self._speculative = False
         self._recording_thread = threading.Thread(target=self._record_audio)
 
@@ -119,28 +104,7 @@ class VoiceAnalysis:
         if len(audio_buffer) > 0:
             self._audio_queue.put(audio_buffer)
 
-    def _boost_speech(self, audio_data: torch.FloatTensor) -> torch.FloatTensor:
-        if self._voice_boost == 0.0:
-            return audio_data
-
-        audio_tensor = torch.from_numpy(audio_data).float().to(self._device)
-        audio_tensor = audio_tensor.unsqueeze(0)
-        audio = convert_audio(audio_tensor, SAMPLE_RATE, self._denoise_model.sample_rate, self._denoise_model.chin)
-
-        with torch.no_grad():
-            denoised = self._denoise_model(audio)[0]
-
-        denoised = denoised * self._voice_boost
-        audio_tensor = audio_tensor + denoised
-        audio_tensor = audio_tensor / audio_tensor.abs().max()
-        audio_tensor = audio_tensor.squeeze(0)
-        audio_tensor = audio_tensor.cpu()
-
-        return audio_tensor.numpy()
-
     def _detect_voice_activity(self, audio_chunk: torch.FloatTensor) -> bool:        
-        assert self._conditioning is not None
-        
         timestamps = silero_vad.get_speech_timestamps(
             model=self._vad_model,
             audio=audio_chunk,
@@ -149,17 +113,6 @@ class VoiceAnalysis:
         )
 
         return len(timestamps) > 0
-
-    def _transcribe(self, audio_tensor: torch.Tensor) -> list[Word]:
-        if self._language is not None:
-            segments, info = self._model.transcribe(audio_tensor.cpu().numpy(), beam_size=5, language=self._language, condition_on_previous_text=False, word_timestamps=True)
-        else:
-            segments, info = self._model.transcribe(audio_tensor.cpu().numpy(), beam_size=5, condition_on_previous_text=False, word_timestamps=True) # Leave the language undefined so whisper autodetects it
-        transcription = []
-        for segment in segments:
-            for word in segment.words: # type: ignore
-                transcription.append(Word(text=word.word, start=word.start, end=word.end))
-        return transcription
 
     def _update_transcription(self, words: list[Word]) -> tuple[list[Word], int]:
         new_locked_words = self._locked_words
@@ -176,13 +129,9 @@ class VoiceAnalysis:
         
         return self._current_sentence, self._locked_words
     
-    def _generate_speaker_embedding(self, audio_data: torch.Tensor, start: float, end: float) -> torch.Tensor:
-        assert self._speaker_embedding_model is not None
-        
+    def _generate_speaker_embedding(self, audio_data: torch.Tensor) -> torch.Tensor:
         if audio_data.ndim == 1:
             audio_data = audio_data.unsqueeze(0)
-
-        audio_data = self._split_audio_by_timestamps(audio_data=audio_data, start=start, end=end)
 
         # Ensure the audio segment is long enough (at least 1 second)
         min_length = SAMPLE_RATE  # 1 second at 16000 Hz
@@ -192,11 +141,11 @@ class VoiceAnalysis:
             audio_data = torch.cat([audio_data, padding], dim=1)
 
         try:
-            return self._speaker_embedding_model.encode_batch(audio_data)
+            return self._speaker_embedding_model.encode_batch(audio_data) # type: ignore
         except RuntimeError as e:
-            return torch.zeros(1, 512, device=self._device)  # Return a zero embedding as a fallback
+            raise Exception(f"Failed to generate speaker embedding: {e}")
 
-    
+    @is_configured
     def start(self) -> Generator[ContextDatapoint, None, None]:
         """
         Generator for live voice analysis.
@@ -213,14 +162,10 @@ class VoiceAnalysis:
         current_audio_data = None
         first_audio_chunk = None
         silence_counter = 0
-
-        confirmed_transcription = ""
-        speculative_transcription = ""
-
+        
         while self._is_recording:
             if not self._audio_queue.empty():
                 audio_chunk = self._audio_queue.get()
-                audio_chunk = self._boost_speech(audio_chunk)
                 speech_detected = self._detect_voice_activity(audio_chunk)
                 if current_audio_data is None:
                     if not speech_detected:
@@ -246,14 +191,13 @@ class VoiceAnalysis:
 
                 audio_tensor = torch.from_numpy(current_audio_data).float().to(self._device)
                 
-                transcription = self._transcribe(audio_tensor)
+                transcription = self._inference_engine.run_inference(audio_tensor)
 
-                self._current_sentence, self._locked_words = self._update_transcription(transcription)
+                self._current_sentence, self._locked_words = self._update_transcription(transcription) # type: ignore
 
-                confirmed_transcription = []
-                speculative_transcription = []
+                confirmed_transcription: list[Word] = []
+                speculative_transcription: list[Word] = []
                 for i, word in enumerate(self._current_sentence):
-                    self._current_sentence[i].speaker_embedding = self._generate_speaker_embedding(audio_tensor, self._current_sentence[i].start, self._current_sentence[i].end)
                     if i < self._locked_words:
                         confirmed_transcription.append(word)
 
@@ -262,12 +206,17 @@ class VoiceAnalysis:
                 # Sentence is finished
                 if len(confirmed_transcription) > 0:
                     if "." in confirmed_transcription[len(confirmed_transcription) - 1].text or "!" in confirmed_transcription[len(confirmed_transcription) - 1].text or "?" in confirmed_transcription[len(confirmed_transcription) - 1].text:
+                        # Generate embedding and assign to all words
+                        speaker_embedding = self._generate_speaker_embedding(audio_tensor)
+                        for word in confirmed_transcription:
+                            word.speaker_embedding = speaker_embedding
+                        
                         current_audio_data = None
                         self._current_sentence = []
                         self._locked_words = 0
 
                         # Construct the context datapoint
-                        voice = self.resolve_speaker(words=confirmed_transcription)
+                        voice = self._resolve_speaker(words=confirmed_transcription)
                         datapoint = ContextDatapoint(
                             source=ContextSource_Voice(speaker=voice),
                             content=VoiceProcessingHelpers.word_array_to_string(confirmed_transcription)
@@ -275,12 +224,10 @@ class VoiceAnalysis:
                         
                         yield datapoint
 
-    def resolve_speaker(self, words: list[Word]) -> str:
+    def _resolve_speaker(self, words: list[Word]) -> str:
         """
         Finds the name of the current speaker 
         """
-        assert self._conditioning is not None
-
         embedding_list = []
         for word in words:
             embedding_list.append(word.speaker_embedding)
@@ -295,7 +242,8 @@ class VoiceAnalysis:
             voice_name = self._voice_database_manager.create_unknown_voice(avg_embedding)
 
         return voice_name
-        
+    
+    @is_configured
     def close(self) -> None:
         """
         Ends the execution of this script. No more data will be yielded by the generator.
@@ -312,10 +260,6 @@ class VoiceAnalysis:
         audio_data = audio_data[:, start_sample:end_sample]
 
         return audio_data
-    
-    def _log(self, text: str) -> None: # Used to print debug information if verbose is set to True. Reduces if statements in the code.
-        if self._verbose:
-            print(text)
 
 class VoiceProcessingHelpers:
     def __init__(self):
