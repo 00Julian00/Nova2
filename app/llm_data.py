@@ -18,15 +18,15 @@ from Nova2.app.interfaces import (
 
 class LLMConditioning(LLMConditioningBase):
     def __init__(
-                self,
-                model: str,
-                inference_engine: str,
-                filter_thinking_process: bool = True,
-                temperature: float = 1.0,
-                max_completion_tokens: int = 1024,
-                add_default_sys_prompt: bool = True,
-                **kwargs
-                ) -> None:
+            self,
+            model: str,
+            inference_engine: str,
+            filter_thinking_process: bool = True,
+            temperature: float = 1.0,
+            max_completion_tokens: int = 1024,
+            add_default_sys_prompt: bool = True,
+            **kwargs
+            ) -> None:
         self.model = model
         self.inference_engine = inference_engine
         self.filter_thinking_process = filter_thinking_process
@@ -49,6 +49,13 @@ class Message(MessageBase):
             content: str,
             **kwargs
             ) -> None:
+        """
+        Holds a single message in the conversation.
+
+        Arguments:
+            author (Literal["user", "assistant", "system", "tool"]): The author of the message.
+            content (str | Path): The content of the message.
+        """
         self._allowed_roles = ["user", "assistant", "system", "tool"]
 
         if (author not in self._allowed_roles):

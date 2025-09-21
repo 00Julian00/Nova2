@@ -19,7 +19,7 @@ Nova2 started out as a rewrite to my [original Nova project](https://github.com/
 What is Nova?  
   
 Nova is an AI assistant building framework that aims to combine several technologies into one cohesive, uniform and easy to use interface, allowing developers to develop a fully working AI assistant in just a few lines of code.  
-Nova is modular and easily extendable, allowing you to easily modify it to fit your needs. The complexities of LLMs, TTS, voice transcription, database management, retrieval-augumented-generation and more are abstracted away but still allow for fine control over them for experienced developers. The struggles of changing your code to fit a new system or AI model are not present as the interface always stays the same, allowing you to rapidly experiment with different AI models and systems without needing to change your code. Nova can be used by researchers or AI enthusiasts, hobbyists and in general everyone who wants something that "just works" without having to dig into documentation for every little change in the pipeline.
+Nova is modular and easily extendable, allowing you to easily modify it to fit your needs. The complexities of LLMs, TTS, voice transcription, database management, retrieval-augmented-generation and more are abstracted away but still allow for fine control over them for experienced developers. The struggles of changing your code to fit a new system or AI model are not present as the interface always stays the same, allowing you to rapidly experiment with different AI models and systems without needing to change your code. Nova can be used by researchers or AI enthusiasts, hobbyists and in general everyone who wants something that "just works" without having to dig into documentation for every little change in the pipeline.
 
 ## Getting started
 For this project you need an nvidia gpu with Cuda installed, as well as [cudnn 9.1.0](https://developer.nvidia.com/cudnn-9-1-0-download-archive).  
@@ -78,8 +78,8 @@ Remember to check out the examples to get more information about how to interact
 Nova aims to provide every building block you need to build an AI assistant pipeline:
 - LLM inference: You can use different "inference engines" to run inference on Large-Language models. Inference engines are essentially wrappers for existing systems and APIs that run LLM inference.
 - TTS inference: Like with LLMs, Nova provides inference engines for Text-to-Speech systems to turn text into spoken speech. Nova also includes an audio player that can play the resulting audio data.
-- Transcriptor: Nova provides a transcriptor to continuously transcribe spoken speech into text using OpenAIs Whisper model. The transcriptor also computes voice embeddings that are stored in a database that allow you to differentiate between different speakers and recognize returning speakers.
-- Long term memory: Nova has a built in retrieval-augumented-generation pipeline that allows the LLM to form long-term memories of important information.
+- Transcriptor: Nova provides a transcriptor to continuously transcribe spoken speech into text using OpenAI's Whisper model. The transcriptor also computes voice embeddings that are stored in a database that allow you to differentiate between different speakers and recognize returning speakers.
+- Long term memory: Nova has a built in retrieval-augmented-generation pipeline that allows the LLM to form long-term memories of important information.
 - Context system: The context system is responsible for short-term LLM memory. It organizes and saves data from various sources for the LLM to use.
 - Tool system: A modular tool system that allows the LLM to perform any action you give it access to. You can also create and add new tools very easily.
 
@@ -89,7 +89,7 @@ Nova combines a bunch of different AI models and technologies. Below is an overv
 ### LLM system:
 The LLM system comes with 2 inference engines that both handle LLM inference differently:
 - The first inference engine utilizes [LlamaCPP](https://github.com/ggml-org/llama.cpp) (specifically [these](https://github.com/abetlen/llama-cpp-python) python bindings). A very fast inference engine written in C++.
-- The second inference engines uses the [Groq](https://groq.com/) API. Their custom made chips allow for fast inference on large LLM models. They also offer a free API tier.
+- The second inference engine uses the [Groq](https://groq.com/) API. Their custom made chips allow for fast inference on large LLM models. They also offer a free API tier.
 
 ### TTS system:
 The TTS system also comes with 2 inference engines:
@@ -104,7 +104,7 @@ Nova uses 2 different database libraries:
 ### Transcriptor:
 The transcriptor combines several AI models and frameworks into its audio-preprocessing and transcription pipeline:
 - [Whisper](https://openai.com/index/whisper/) developed by OpenAI is a Speech-to-Text model that can turn spoken language into text. The transcriptor uses a special approach for transcribing with whisper to allow for streaming transcriptions inspired by [this](https://www.youtube.com/watch?v=_spinzpEeFM) video.
-- [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) is an inference engine for whisper that greatly increases inference speed over OpenAIs implementation by utilizing [CTranslate2](https://github.com/OpenNMT/CTranslate2/).
+- [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) is an inference engine for whisper that greatly increases inference speed over OpenAI's implementation by utilizing [CTranslate2](https://github.com/OpenNMT/CTranslate2/).
 - [Denoiser](https://github.com/facebookresearch/denoiser) developed by Meta is a library that attempts to remove noise in the given audio data. The transcriptor uses it to boost the volume of speech compared to other noises in the given audio data.
 - [Silero VAD](https://github.com/snakers4/silero-vad) is a voice activity detection library. It is used to detect speech in the audio data to filter out audio chunks.
 - [Speechbrain](https://github.com/speechbrain/speechbrain?tab=readme-ov-file) is a library that is used to compute the speaker embeddings.

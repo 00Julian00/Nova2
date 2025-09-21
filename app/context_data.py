@@ -146,7 +146,7 @@ class ContextGenerator(ContextGeneratorBase):
 class ContextGeneratorList(ContextGeneratorListBase):
     def __init__(self) -> None:
         """
-        Manages a dynamic thread-safe list of context sources that can be itterated through.
+        Manages a dynamic thread-safe list of context sources that can be iterated through.
         """
         self._index = 0
         self._sources = []
