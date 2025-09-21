@@ -140,7 +140,7 @@ class Conversation(ConversationBase):
         if author == None:
             del self._conversation[-1]
         else:
-            #Itterate through the list from the back and find the first one with a matching author
+            #Iterate through the list from the back and find the first one with a matching author
             for i, message in enumerate(reversed(self._conversation)):
                 if message.author == author: # type: ignore
                     del self._conversation[i]

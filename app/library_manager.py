@@ -10,16 +10,16 @@ from Nova2.app.helpers import Singleton
 class LibraryManager(Singleton):
    def __init__(self) -> None:
        """
-       This class is used to interact with libaries.
+       This class is used to interact with libraries.
        """
        self._library_path = Path(__file__).parent.parent / "data" / "libraries"
 
    def retrieve_datapoint(self, library_name: str, datapoint_name: str) -> dict:
         """
-        Retrieve a specific datapoint from a libary.
+        Retrieve a specific datapoint from a library.
 
         Arguments:
-            libary_name (str): The name of the libary to search for the datapoint in.
+            library_name (str): The name of the library to search for the datapoint in.
             datapoint_name (str): The name of the datapoint to look for.
 
         Returns:

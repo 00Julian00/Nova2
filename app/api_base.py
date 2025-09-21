@@ -249,7 +249,7 @@ class APIAbstract(ABC):
     @abstractmethod
     def is_playing_audio(self) -> bool:
         """
-        Checks wether the audio player is currently playing any audio.
+        Checks whether the audio player is currently playing any audio.
         """
         raise NotImplementedError
 

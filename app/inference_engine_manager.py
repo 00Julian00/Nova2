@@ -52,7 +52,7 @@ class InferenceEngineManager(Singleton):
                         for cls in classes:
                             if issubclass(cls, base_class) and cls != base_class: # type: ignore
                                 if class_instance != None:
-                                    raise Exception(f"More then one class found that inherits from an engine base class in engine {name}. Only one class can inherit from an engine base class.")
+                                    raise Exception(f"More than one class found that inherits from an engine base class in engine {name}. Only one class can inherit from an engine base class.")
 
                                 class_instance = cls()
 

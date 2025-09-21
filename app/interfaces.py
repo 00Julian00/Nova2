@@ -221,7 +221,7 @@ class LLMResponseBase(ABC):
     @abstractmethod
     def to_message(self) -> MessageBase:
         """
-        Formats the LLM reponse to a Message object.
+        Formats the LLM response to a Message object.
         """
         raise NotImplementedError
 
@@ -337,7 +337,7 @@ class LLMConditioningBase(ABC):
         model (str): The model name. Must a valid huggingface repo ID.
         file (str): The file to use from that repo. Must be GGUF format.
         inference_engine (str): The inference engine to use.
-        filter_thinking_process (bool): Wether to automatically remove the "thinking" part of an LLM response (essentially only using the response after the </think> token).
+        filter_thinking_process (bool): Whether to automatically remove the "thinking" part of an LLM response (essentially only using the response after the </think> token).
         temperature (float): The temperature to use for inference.
         max_completion_tokens (int): How many tokens the model is allowed to generate.
         add_default_sys_prompt (bool): Should an extra system prompt be added to the LLM that adds context about the Nova system?
@@ -382,7 +382,7 @@ class TTSConditioningBase(ABC):
     Arguments:
         model (str): The TTS model to use. Must be a valid huggingface repo ID.
         voice (str): The voice to use. Must be a valid voice name.
-        expressivness (float): The expressiveness of the voice. 0 is neutral, 1 is very expressive.
+        expressiveness (float): The expressiveness of the voice. 0 is neutral, 1 is very expressive.
         stability (float): The stability of the voice. 0 is very unstable, 1 is very stable.
     """
     pass

@@ -63,7 +63,7 @@ class LLMManager:
             conversation (Conversation | Context): The conversation that the LLM will base its response on. Can be type Conversation or type Context.
             tools (list[LLMTool] | None): The tools the LLM has access to.
             model (str): The model that should be used for inference.
-            perform_rag (bool): Wether to search for additional data in the memory database based on the newest user message.
+            perform_rag (bool): Whether to search for additional data in the memory database based on the newest user message.
 
         Returns:
             LLMResponse: The response of the LLM. Also includes tool calls.
