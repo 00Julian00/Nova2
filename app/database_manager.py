@@ -24,9 +24,10 @@ class MemoryEmbeddingDatabaseManager(Singleton):
     def __init__(self):
         """
         This class is responsible for managing the memory database which stores memories as text-embeddings.
-        It also provides a semantic search system used for retrieval augumented generation.
+        It also provides a semantic search system used for retrieval augmented generation.
         """
         self._qdrant_client: QdrantClient = None # type: ignore
+        self.text_embedding_model = None
         self._prepare_database()
 
     def create_new_entry(self, text: str) -> None:
@@ -164,7 +165,7 @@ class MemoryEmbeddingDatabaseManager(Singleton):
         Returns:
             torch.FloatTensor: The computed embedding.
         """
-        embedding = self.text_embedding_model.encode(text, task="text-matching")
+        embedding = self.text_embedding_model.encode(text, task="text-matching") # type: ignore
 
         return torch.from_numpy(embedding).squeeze()
 
